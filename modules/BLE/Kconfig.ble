@@ -1,0 +1,25 @@
+# Copyright (c) 2025 Nordic Semiconductor ASA
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+menuconfig BLE_MODULE
+	bool "Enable BLE Module"
+	depends on BT
+	depends on BT_NUS
+	default y
+	help
+	  Enable the BLE module with Nordic UART Service support.
+
+if BLE_MODULE
+
+config BLE_MODULE_DK_SUPPORT
+	bool "Enable DK LED support"
+	depends on DK_LIBRARY
+	default y if DK_LIBRARY
+	help
+	  Enable LED status indication for connection state.
+
+module = BLE_MODULE
+module-str = ble_module
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # BLE_MODULE
