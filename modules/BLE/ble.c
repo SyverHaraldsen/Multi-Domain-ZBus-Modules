@@ -341,35 +341,6 @@ static int ble_module_enable(void)
 	return 0;
 }
 
-static int ble_module_disable(void)
-{
-	int err;
-
-	if (!module_enabled) {
-		LOG_WRN("BLE module already disabled");
-		return -EALREADY;
-	}
-
-	module_enabled = false;
-
-	err = bt_le_adv_stop();
-	if (err && err != -EALREADY) {
-		LOG_ERR("Failed to stop advertising (err %d)", err);
-		return err;
-	}
-
-	if (current_conn) {
-		err = bt_conn_disconnect(current_conn, BT_HCI_ERR_REMOTE_USER_TERM_CONN);
-		if (err) {
-			LOG_ERR("Failed to disconnect (err %d)", err);
-			return err;
-		}
-	}
-
-	LOG_DBG("BLE module disabled");
-	return 0;
-}
-
 int ble_module_send(const uint8_t *data, uint16_t len)
 {
 	if (!data || len == 0) {
