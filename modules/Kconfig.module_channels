@@ -1,0 +1,5 @@
+menu "multi-domain-modules"
+
+rsource "led/Kconfig.multidomain_channels"
+
+endmenu
