@@ -9,6 +9,8 @@
 #include <zephyr/kernel.h>
 
 #include <string.h>
+#include <stdint.h>
+#include <stdbool.h>
 
 #include <zephyr/bluetooth/bluetooth.h>
 #include <zephyr/bluetooth/conn.h>
@@ -17,6 +19,8 @@
 #include <zephyr/bluetooth/hci.h>
 
 #include <bluetooth/services/nus.h>
+
+#include <zephyr/zbus/zbus.h>
 
 #include <zephyr/settings/settings.h>
 
@@ -68,6 +72,34 @@ static const struct bt_data ad[] = {
 static const struct bt_data sd[] = {
 	BT_DATA_BYTES(BT_DATA_UUID128_ALL, BT_UUID_NUS_VAL),
 };
+
+ZBUS_CHAN_DEFINE(
+	BLE_NUS_DATA_CHAN,
+	struct ble_module_message,
+	NULL,
+	NULL,
+	ZBUS_OBSERVERS_EMPTY,
+	ZBUS_MSG_INIT(0)
+);
+
+/* Forward declare the message subscriber */
+ZBUS_MSG_SUBSCRIBER_DEFINE(test_msg_subscriber);
+
+static int publish_ble_data(const uint8_t *data, uint16_t len)
+{
+	int ret;
+
+	struct ble_module_message msg = {0};
+	msg.len = len;
+	memcpy(msg.data, data, len);
+	msg.timestamp = k_uptime_get_32();
+
+	ret = zbus_chan_pub(&BLE_NUS_DATA_CHAN, &msg, K_FOREVER);
+	if (ret != 0) {
+		LOG_ERR("Failed to publish BLE data: %d", ret);
+	}
+	return ret;
+}
 
 /* BLE callbacks */
 static void connected(struct bt_conn *conn, uint8_t err)
@@ -219,6 +251,8 @@ static struct bt_conn_auth_info_cb conn_auth_info_callbacks = {
 
 static void bt_receive_cb(struct bt_conn *conn, const uint8_t *const data, uint16_t len)
 {
+	publish_ble_data(data, len);
+
 	if (user_data_cb) {
 		user_data_cb(conn, data, len);
 	}
@@ -530,3 +564,62 @@ static int ble_module_auto_init(void)
 }
 
 SYS_INIT(ble_module_auto_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+
+/* Test subscriber thread for zbus topic */
+#define TEST_SUBSCRIBER_STACK_SIZE 1024
+#define TEST_SUBSCRIBER_PRIORITY 7
+
+static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
+{
+	ARG_UNUSED(unused1);
+	ARG_UNUSED(unused2);
+	ARG_UNUSED(unused3);
+
+	LOG_INF("=== ZBUS Test Subscriber Thread Started ===");
+
+	/* Add message subscriber to the channel at runtime */
+	int ret = zbus_chan_add_obs(&BLE_NUS_DATA_CHAN, &test_msg_subscriber, K_MSEC(1000));
+	if (ret == 0) {
+		LOG_INF("Test message subscriber successfully added to BLE_NUS_DATA_CHAN");
+	} else {
+		LOG_ERR("Failed to add test message subscriber: %d", ret);
+		return;
+	}
+
+	const struct zbus_channel *chan;
+	struct ble_module_message msg;
+
+	while (true) {
+		/* Wait for message - the message is copied directly into msg */
+		if (zbus_sub_wait_msg(&test_msg_subscriber, &chan, &msg, K_FOREVER) == 0) {
+			if (chan == &BLE_NUS_DATA_CHAN) {
+				LOG_INF("=== ZBUS Message Received ===");
+				LOG_INF("Timestamp: %u ms", msg.timestamp);
+				LOG_INF("Length: %u bytes", msg.len);
+				LOG_HEXDUMP_INF(msg.data, msg.len, "Data:");
+
+				/* Try to print as string if printable */
+				bool printable = true;
+				for (uint16_t i = 0; i < msg.len; i++) {
+					if (msg.data[i] < 0x20 && msg.data[i] != '\r' &&
+					    msg.data[i] != '\n' && msg.data[i] != '\t') {
+						printable = false;
+						break;
+					}
+				}
+
+				if (printable && msg.len < BLE_MAX_PRINT_LEN) {
+					char str_buf[BLE_MAX_PRINT_LEN];
+					memcpy(str_buf, msg.data, msg.len);
+					str_buf[msg.len] = '\0';
+					LOG_INF("As String: \"%s\"", str_buf);
+				}
+				LOG_INF("=============================");
+			}
+		}
+	}
+}
+
+K_THREAD_DEFINE(test_subscriber_tid, TEST_SUBSCRIBER_STACK_SIZE,
+		test_subscriber_thread, NULL, NULL, NULL,
+		TEST_SUBSCRIBER_PRIORITY, 0, 0);
