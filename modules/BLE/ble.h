@@ -9,10 +9,26 @@
 
 #include <zephyr/types.h>
 #include <zephyr/bluetooth/conn.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#include <zephyr/zbus/zbus.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define BLE_MODULE_MESSAGE_SIZE 128
+
+struct ble_module_message {
+	uint8_t data[BLE_MODULE_MESSAGE_SIZE];
+	uint16_t len;
+	uint32_t timestamp;
+};
+
+ZBUS_CHAN_DECLARE(
+	BLE_NUS_DATA_CHAN
+);
 
 /**
  * @brief Send data over BLE NUS service
