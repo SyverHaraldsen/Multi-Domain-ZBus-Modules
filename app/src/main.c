@@ -5,44 +5,24 @@
  */
 
 #include <zephyr/kernel.h>
+#include <zephyr/zbus/zbus.h>
+#include <zephyr/zbus/multidomain/zbus_multidomain.h>
+
 #include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(main, LOG_LEVEL_DBG);
 
-#ifdef CONFIG_DK_LIBRARY
-#include <dk_buttons_and_leds.h>
-#endif
-
-LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
-
-/**
- * @brief Main application entry point
+/* Set up UART1 proxy agent, with no channels attached this will just receive
+ * messages from the other domain and forward them to the local zbus.
  */
+#define ZBUS_UART_NODE DT_ALIAS(zbus_uart)
+ZBUS_PROXY_AGENT_DEFINE(uart1_proxy, ZBUS_MULTIDOMAIN_TYPE_UART, ZBUS_UART_NODE);
+
 int main(void)
 {
-	int err;
-
-	LOG_INF("Application started");
-
-#ifdef CONFIG_DK_LIBRARY
-	/* Initialize LEDs for status indication */
-	err = dk_leds_init();
-	if (err) {
-		LOG_ERR("LED init failed: %d", err);
-	}
-#endif
-
-	/* BLE module auto-initializes via SYS_INIT if CONFIG_BLE_MODULE=y */
-
-	/* Main loop - blink status LED */
-	uint32_t blink_count = 0;
-
-	while (1) {
-#ifdef CONFIG_DK_LIBRARY
-		/* LED1: Heartbeat (always blinking = app running) */
-		dk_set_led(DK_LED1, (blink_count % 2));
-#endif
-		blink_count++;
-		k_sleep(K_SECONDS(1));
-	}
-
-	return 0;
+        LOG_INF("Module runner started");
+        while (1) {
+                k_sleep(K_SECONDS(1));
+                LOG_INF("Module runner alive");
+        }
+        return 0;
 }
