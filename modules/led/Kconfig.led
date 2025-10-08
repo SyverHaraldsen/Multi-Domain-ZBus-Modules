@@ -1,0 +1,28 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+rsource "Kconfig.multidomain_channels"
+
+if MDM_LED
+
+module = MDM_LED
+module-str = LED
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # MDM_LED
+
+# Module defaults
+if MDM_LED
+
+config GPIO
+	bool
+	default y
+
+config PWM
+	bool
+	default y
+
+endif # MDM_LED

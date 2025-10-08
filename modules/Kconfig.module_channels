@@ -1,0 +1,14 @@
+menu "multi-domain-modules"
+
+menuconfig MDM_CHANNELS
+	bool "Enable multi-domain modules"
+	help
+	  Enable multi-domain modules support
+
+if MDM_CHANNELS
+
+rsource "led/Kconfig.multidomain_channels"
+
+endif # MDM_CHANNELS
+
+endmenu
