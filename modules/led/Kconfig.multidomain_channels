@@ -1,0 +1,21 @@
+#
+# Copyright (c) 2025 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig MDM_LED
+	bool "LED module"
+	select LED
+	help
+	  Enable LED module
+
+if MDM_LED
+
+config MDM_LED_RUNNER
+	bool "Module is running on this image"
+	default n
+	help
+	  Select if this module is running on this image.
+
+endif # MDM_LED
