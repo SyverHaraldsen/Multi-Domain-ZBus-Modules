@@ -5,6 +5,10 @@
  */
 
 / {
+	chosen {
+		nordic,nus-uart = &uart20;
+	};
+
 	aliases {
 		pwm-led0 = &pwm_led1;   /* Renamed to work with ATT led module code */
 		pwm-led1 = &pwm_led3;   /* Renamed to work with ATT led module code */

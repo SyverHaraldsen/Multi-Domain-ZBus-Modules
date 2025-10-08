@@ -1,0 +1,22 @@
+#
+# Copyright (c) 2025 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig MDM_BLE
+	bool "BLE module"
+	help
+	  Enable BLE module
+
+if MDM_BLE
+
+config MDM_BLE_RUNNER
+	bool "Module is running on this image"
+	default n
+	depends on BT
+	depends on BT_NUS
+	help
+	  Select if this module is running on this image.
+
+endif # MDM_BLE

@@ -8,6 +8,7 @@ menuconfig MDM_CHANNELS
 if MDM_CHANNELS
 
 rsource "led/Kconfig.multidomain_channels"
+rsource "BLE/Kconfig.multidomain_channels"
 
 endif # MDM_CHANNELS
 
