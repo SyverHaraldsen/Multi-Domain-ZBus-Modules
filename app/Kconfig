@@ -6,4 +6,5 @@
 
 source "Kconfig.zephyr"
 
+source "$(APPLICATION_SOURCE_DIR)/../modules/BLE/Kconfig.ble"
 source "$(APPLICATION_SOURCE_DIR)/../modules/led/Kconfig.led"
