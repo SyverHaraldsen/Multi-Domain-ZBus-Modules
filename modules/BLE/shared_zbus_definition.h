@@ -1,0 +1,15 @@
+#ifndef _MULTI_DOMAIN_MODULES_BLE_SHARED_ZBUS_DEFINITION_H_
+#define _MULTI_DOMAIN_MODULES_BLE_SHARED_ZBUS_DEFINITION_H_
+
+#include "shared_zbus.h"
+
+ZBUS_MULTIDOMAIN_CHAN_DEFINE(BLE_CHAN,
+			     struct ble_module_message,
+			     NULL,
+			     NULL,
+			     ZBUS_OBSERVERS_EMPTY,
+			     ZBUS_MSG_INIT(0),
+			     IS_ENABLED(CONFIG_MDM_BLE_RUNNER), /* Runner is master */
+			     IS_ENABLED(CONFIG_MDM_BLE));
+
+#endif /* _MULTI_DOMAIN_MODULES_BLE_SHARED_ZBUS_DEFINITION_H_ */
