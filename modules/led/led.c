@@ -1,12 +1,12 @@
 /*
- * Copyright (c) 2024 Nordic Semiconductor ASA
+ * Copyright (c) 2025 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
-#include <zephyr/drivers/pwm.h>
+#include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/zbus/multidomain/zbus_multidomain.h>
@@ -15,31 +15,19 @@
 #include "module_common.h"
 #include "led.h"
 
-#define PWM_LED0 DT_ALIAS(pwm_led0)
-#define PWM_LED1 DT_ALIAS(pwm_led1)
-/* Don not use led2 if using nrf54l15 as it doesn't have pwm support for 3 leds */
-#if !IS_ENABLED(CONFIG_BOARD_NRF54L15DK)
-#define PWM_LED2	DT_ALIAS(pwm_led2)
-#endif /* CONFIG_BOARD_NRF54L15DK */
+/* Use GPIO LEDs available on nRF54L15DK */
+#define LED1 DT_ALIAS(led1)
+#define LED2 DT_ALIAS(led2)
+#define LED3 DT_ALIAS(led3)
 
-#if DT_NODE_HAS_STATUS(PWM_LED0, okay)
-static const struct pwm_dt_spec pwm_led0 = PWM_DT_SPEC_GET(PWM_LED0);
-#else
-#error "Unsupported board: pwm-led 0 devicetree alias is not defined"
+#if !DT_NODE_HAS_STATUS(LED1, okay) || !DT_NODE_HAS_STATUS(LED2, okay) || \
+        !DT_NODE_HAS_STATUS(LED3, okay)
+#error "Unsupported board: led1, led2, led3 devicetree alias is not defined"
 #endif
-#if DT_NODE_HAS_STATUS(PWM_LED1, okay)
-static const struct pwm_dt_spec pwm_led1 = PWM_DT_SPEC_GET(PWM_LED1);
-#else
-#error "Unsupported board: pwm-led 1 devicetree alias is not defined"
-#endif
-/* Don not use led2 if using nrf54l15 as it doesn't have pwm support for 3 leds */
-#if !IS_ENABLED(CONFIG_BOARD_NRF54L15DK)
-#if DT_NODE_HAS_STATUS(PWM_LED2, okay)
-static const struct pwm_dt_spec pwm_led2 = PWM_DT_SPEC_GET(PWM_LED2);
-#else
-#error "Unsupported board: pwm-led 2 devicetree alias is not defined"
-#endif
-#endif /* CONFIG_BOARD_NRF54L15DK */
+
+static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(LED1, gpios);
+static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2, gpios);
+static const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(LED3, gpios);
 
 /* Register log module */
 LOG_MODULE_REGISTER(led, CONFIG_MDM_LED_LOG_LEVEL);
@@ -66,48 +54,33 @@ struct led_state {
 static struct led_state led_state;
 static void blink_timer_handler(struct k_work *work);
 
-static int pwm_out(const struct led_msg *led_msg, bool force_off)
+static int gpio_led_out(const struct led_msg *led_msg, bool force_off)
 {
 	int err;
 
-#define PWM_PERIOD PWM_USEC(255)
-
 	/* If force_off is true, turn off all LEDs regardless of led_msg values */
-	uint8_t red = force_off ? 0 : led_msg->red;
-	uint8_t green = force_off ? 0 : led_msg->green;
-	/* Don not use led2 if using nrf54l15 as it doesn't have pwm support for 3 leds */
-#if !IS_ENABLED(CONFIG_BOARD_NRF54L15DK)
-	uint8_t blue = force_off ? 0 : led_msg->blue;
-#endif /* CONFIG_BOARD_NRF54L15DK */
+	/* Map RGB values to the available LEDs on nRF54L15DK */
+	bool led1_on = !force_off && (led_msg->red > 0);     /* Red -> LED1 */
+	bool led2_on = !force_off && (led_msg->green > 0);   /* Green -> LED2 */
+	bool led3_on = !force_off && (led_msg->blue > 0);    /* Blue -> LED3 */
 
-	if (!pwm_is_ready_dt(&pwm_led0)) {
-		LOG_ERR("Error: PWM device %s is not ready\n", pwm_led0.dev->name);
-		return -ENODEV;
-	}
-
-	/* RED */
-	err = pwm_set_dt(&pwm_led0, PWM_PERIOD, PWM_USEC(red));
+	err = gpio_pin_set_dt(&led1, led1_on);
 	if (err) {
-		LOG_ERR("pwm_set_dt, error:%d", err);
+		LOG_ERR("gpio_pin_set_dt LED1, error: %d", err);
 		return err;
 	}
 
-	/* GREEN */
-	err = pwm_set_dt(&pwm_led1, PWM_PERIOD, PWM_USEC(green));
+	err = gpio_pin_set_dt(&led2, led2_on);
 	if (err) {
-		LOG_ERR("pwm_set_dt, error:%d", err);
+		LOG_ERR("gpio_pin_set_dt LED2, error: %d", err);
 		return err;
 	}
 
-	/* BLUE */
-	/* Don not use led2 if using nrf54l15 as it doesn't have pwm support for 3 leds */
-#if !IS_ENABLED(CONFIG_BOARD_NRF54L15DK)
-	err = pwm_set_dt(&pwm_led2, PWM_PERIOD, PWM_USEC(blue));
+	err = gpio_pin_set_dt(&led3, led3_on);
 	if (err) {
-		LOG_ERR("pwm_set_dt, error:%d", err);
+		LOG_ERR("gpio_pin_set_dt LED3, error: %d", err);
 		return err;
 	}
-#endif /* CONFIG_BOARD_NRF54L15DK */
 
 	return 0;
 }
@@ -122,9 +95,9 @@ static void blink_timer_handler(struct k_work *work)
 	led_state.is_on = !led_state.is_on;
 
 	/* Update LED state */
-	err = pwm_out(&led_state.current_state, !led_state.is_on);
+	err = gpio_led_out(&led_state.current_state, !led_state.is_on);
 	if (err) {
-		LOG_ERR("pwm_out, error: %d", err);
+		LOG_ERR("gpio_led_out, error: %d", err);
 		SEND_FATAL_ERROR();
 	}
 
@@ -156,7 +129,7 @@ static void led_callback(const struct zbus_channel *chan)
 		const struct led_msg *led_msg = zbus_chan_const_msg(chan);
 
 		/* Print received LED message */
-		LOG_WRN("LED message received: type=%d, R=%d, G=%d, B=%d, on=%dms, off=%dms, "
+		LOG_DBG("LED message received: type=%d, R=%d, G=%d, B=%d, on=%dms, off=%dms, "
 			"reps=%d",
 			led_msg->type, led_msg->red, led_msg->green, led_msg->blue,
 			led_msg->duration_on_msec, led_msg->duration_off_msec,
@@ -174,9 +147,9 @@ static void led_callback(const struct zbus_channel *chan)
 		/* If repetitions is 0, turn LED off. Otherwise LED on */
 		led_state.is_on = (led_state.repetitions != 0);
 
-		err = pwm_out(led_msg, !led_state.is_on);
+		err = gpio_led_out(led_msg, !led_state.is_on);
 		if (err) {
-			LOG_ERR("pwm_out, error: %d", err);
+			LOG_ERR("gpio_led_out, error: %d", err);
 			SEND_FATAL_ERROR();
 		}
 
@@ -193,7 +166,33 @@ static void led_callback(const struct zbus_channel *chan)
 
 static int led_init(void)
 {
+	int err;
+
 	k_work_init_delayable(&blink_work, blink_timer_handler);
+
+	/* Configure GPIO LEDs as outputs */
+	if (!gpio_is_ready_dt(&led1) || !gpio_is_ready_dt(&led2) || !gpio_is_ready_dt(&led3)) {
+		LOG_ERR("GPIO LED device not ready");
+		return -ENODEV;
+	}
+
+	err = gpio_pin_configure_dt(&led1, GPIO_OUTPUT_INACTIVE);
+	if (err) {
+		LOG_ERR("Cannot configure LED1 GPIO, error: %d", err);
+		return err;
+	}
+
+	err = gpio_pin_configure_dt(&led2, GPIO_OUTPUT_INACTIVE);
+	if (err) {
+		LOG_ERR("Cannot configure LED2 GPIO, error: %d", err);
+		return err;
+	}
+
+	err = gpio_pin_configure_dt(&led3, GPIO_OUTPUT_INACTIVE);
+	if (err) {
+		LOG_ERR("Cannot configure LED3 GPIO, error: %d", err);
+		return err;
+	}
 
 	return 0;
 }
