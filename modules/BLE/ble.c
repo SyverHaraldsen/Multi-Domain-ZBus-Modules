@@ -5,7 +5,7 @@
  */
 
 #include "ble.h"
-#include "shared_zbus.h"
+#include "shared_zbus_defenition.h"
 
 #include <zephyr/kernel.h>
 
@@ -81,6 +81,7 @@ static int publish_ble_data(const uint8_t *data, uint16_t len)
 
 	struct ble_module_message msg = {0};
 
+        msg.type = BLE_RECV;
 	msg.len = len;
 	memcpy(msg.data, data, len);
 	msg.timestamp = k_uptime_get_32();
@@ -555,6 +556,16 @@ SYS_INIT(ble_module_auto_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 
 #if IS_ENABLED(CONFIG_MDM_BLE_ZBUS_LOGGING)
 
+static const char *ble_message_type_to_string(enum ble_msg_type type)
+{
+    switch (type) {
+    case BLE_RECV:
+        return "BLE_RECV";
+    default:
+        return "UNKNOWN";
+    }
+}
+
 /* Add a message subscriber to the BLE_CHAN channel to log received messages */
 ZBUS_MSG_SUBSCRIBER_DEFINE(test_msg_subscriber);
 ZBUS_CHAN_ADD_OBS(BLE_CHAN, test_msg_subscriber, 0);
@@ -572,6 +583,7 @@ static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
 		if (zbus_sub_wait_msg(&test_msg_subscriber, &chan, &msg, K_FOREVER) == 0) {
 			if (chan == &BLE_CHAN) {
 				LOG_INF("=== ZBUS Message Received ===");
+                                LOG_INF("Type: %s", ble_message_type_to_string(msg.type));
 				LOG_INF("Timestamp: %u ms", msg.timestamp);
 				LOG_INF("Length: %u bytes", msg.len);
 
