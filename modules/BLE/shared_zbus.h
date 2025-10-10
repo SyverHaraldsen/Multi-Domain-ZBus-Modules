@@ -20,19 +20,16 @@
 
 #define BLE_MODULE_MESSAGE_SIZE 128
 
+enum ble_msg_type {
+	BLE_RECV,
+};
 struct ble_module_message {
+	enum ble_msg_type type;
 	uint8_t data[BLE_MODULE_MESSAGE_SIZE];
 	uint16_t len;
 	uint32_t timestamp;
 };
 
-ZBUS_MULTIDOMAIN_CHAN_DEFINE(BLE_CHAN,
-			     struct ble_module_message,
-			     NULL,
-			     NULL,
-			     ZBUS_OBSERVERS_EMPTY,
-			     ZBUS_MSG_INIT(0),
-			     IS_ENABLED(CONFIG_MDM_BLE_RUNNER), /* Runner is master */
-			     IS_ENABLED(CONFIG_MDM_BLE));
+ZBUS_CHAN_DECLARE(BLE_CHAN);
 
 #endif /* _MULTI_DOMAIN_MODULES_BLE_SHARED_ZBUS_H_ */
