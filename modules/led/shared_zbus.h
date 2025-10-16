@@ -45,6 +45,7 @@ struct led_msg {
 #define MDM_LED_CHANNEL_IS_LISTENER 1
 #endif
 
+#if IS_ENABLED(CONFIG_ZBUS_MULTIDOMAIN)
 ZBUS_MULTIDOMAIN_CHAN_DEFINE(LED_CHAN,
 			     struct led_msg,
 			     NULL,
@@ -53,5 +54,13 @@ ZBUS_MULTIDOMAIN_CHAN_DEFINE(LED_CHAN,
 			     ZBUS_MSG_INIT(0),
 			     MDM_LED_CHANNEL_IS_LISTENER, /* Runner is listener */
 			     IS_ENABLED(CONFIG_MDM_LED));
+#else
+ZBUS_CHAN_DEFINE(LED_CHAN,
+		 struct led_msg,
+		 NULL,
+		 NULL,
+		 ZBUS_OBSERVERS_EMPTY,
+		 ZBUS_MSG_INIT(0));
+#endif /* CONFIG_ZBUS_MULTIDOMAIN */
 
 #endif /* _MULTI_DOMAIN_MODULES_LED_SHARED_ZBUS_H_ */

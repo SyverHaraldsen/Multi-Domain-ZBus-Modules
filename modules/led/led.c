@@ -9,7 +9,6 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/zbus/multidomain/zbus_multidomain.h>
 
 #include "shared_zbus.h"
 #include "module_common.h"
