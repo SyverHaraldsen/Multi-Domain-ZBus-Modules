@@ -19,6 +19,9 @@ function(add_overlay_config_ifdef kconfig_option overlay_file)
 	endif()
 endfunction()
 
+add_overlay_config_ifdef(CONFIG_MDM_CHANNEL_SOUNDING
+	"${CMAKE_CURRENT_SOURCE_DIR}/../modules/channel_sounding/channel_sounding.conf")
+
 add_overlay_config_ifdef(CONFIG_MDM_BLE_NUS
 	"${CMAKE_CURRENT_SOURCE_DIR}/../modules/ble_nus/ble_nus.conf")
 
@@ -32,3 +35,4 @@ target_sources(app PRIVATE src/main.c)
 
 add_subdirectory_ifdef(CONFIG_MDM_BLE_NUS ../modules/ble_nus ${CMAKE_BINARY_DIR}/modules/ble_nus)
 add_subdirectory_ifdef(CONFIG_MDM_LED ../modules/led ${CMAKE_BINARY_DIR}/modules/led)
+add_subdirectory_ifdef(CONFIG_MDM_CHANNEL_SOUNDING ../modules/channel_sounding ${CMAKE_BINARY_DIR}/modules/channel_sounding)

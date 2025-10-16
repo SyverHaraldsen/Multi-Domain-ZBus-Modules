@@ -8,3 +8,4 @@ source "Kconfig.zephyr"
 
 source "$(APPLICATION_SOURCE_DIR)/../modules/ble_nus/Kconfig.ble_nus"
 source "$(APPLICATION_SOURCE_DIR)/../modules/led/Kconfig.led"
+source "$(APPLICATION_SOURCE_DIR)/../modules/channel_sounding/Kconfig.channel_sounding"
