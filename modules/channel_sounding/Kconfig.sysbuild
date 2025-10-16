@@ -1,0 +1,15 @@
+#
+# Copyright (c) 2025 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+if MDM_CHANNEL_SOUNDING
+
+config NRF_DEFAULT_BLUETOOTH
+	default y
+
+config NETCORE_IPC_RADIO_BT_HCI_IPC
+	default y
+
+endif # MDM_CHANNEL_SOUNDING

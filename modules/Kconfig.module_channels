@@ -9,6 +9,7 @@ if MDM_CHANNELS
 
 rsource "led/Kconfig.multidomain_channels"
 rsource "ble_nus/Kconfig.multidomain_channels"
+rsource "channel_sounding/Kconfig.multidomain_channels"
 
 endif # MDM_CHANNELS
 

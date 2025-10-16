@@ -1,0 +1,24 @@
+# Copyright (c) 2025 Nordic Semiconductor ASA
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+rsource "Kconfig.multidomain_channels"
+
+if MDM_CHANNEL_SOUNDING_RUNNER
+
+config CHANNEL_SOUNDING_THREAD_STACK_SIZE
+	int "Channel Sounding thread stack size"
+	default 4096
+	help
+	  Stack size for the channel sounding thread.
+
+config CHANNEL_SOUNDING_THREAD_PRIORITY
+	int "Channel Sounding thread priority"
+	default 7
+	help
+	  Priority for the channel sounding thread.
+
+module = CHANNEL_SOUNDING_MODULE
+module-str = channel_sounding_module
+source "subsys/logging/Kconfig.template.log_config"
+
+endif # MDM_CHANNEL_SOUNDING_RUNNER
