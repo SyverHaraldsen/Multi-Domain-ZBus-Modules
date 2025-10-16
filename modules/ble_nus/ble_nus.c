@@ -4,10 +4,15 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "ble.h"
+#include "ble_nus.h"
 #include "shared_zbus_definition.h"
 
 #include <zephyr/kernel.h>
+
+/* Build-time check: BLE NUS and Channel Sounding cannot coexist due to BLE role conflicts */
+BUILD_ASSERT(!IS_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING),
+	"Cannot enable both BLE NUS and Channel Sounding modules - "
+	"BLE role conflict: NUS requires peripheral mode, Channel Sounding requires central-only mode");
 
 #include <string.h>
 #include <stdint.h>
@@ -22,17 +27,16 @@
 #include <bluetooth/services/nus.h>
 
 #include <zephyr/zbus/zbus.h>
-#include <zephyr/zbus/multidomain/zbus_multidomain.h>
 
 #include <zephyr/settings/settings.h>
 
-#ifdef CONFIG_BLE_MODULE_DK_SUPPORT
+#ifdef CONFIG_BLE_NUS_MODULE_DK_SUPPORT
 #include <dk_buttons_and_leds.h>
 #endif
 
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(ble_module, CONFIG_BLE_MODULE_LOG_LEVEL);
+LOG_MODULE_REGISTER(ble_nus_module, CONFIG_BLE_NUS_MODULE_LOG_LEVEL);
 
 #define BLE_TX_BUFFER_SIZE     64
 #define BLE_TX_TIMEOUT_MS      1000
@@ -45,7 +49,7 @@ typedef void (*ble_connection_status_cb_t)(struct bt_conn *conn, bool connected)
 typedef void (*ble_ready_cb_t)(struct bt_conn *conn, bool ready);
 
 /* Internal configuration structure */
-struct ble_module_config {
+struct ble_nus_module_config {
 	ble_data_received_cb_t data_received_cb;
 	ble_connection_status_cb_t connection_status_cb;
 	ble_ready_cb_t ready_cb;
@@ -79,14 +83,14 @@ static int publish_ble_data(const uint8_t *data, uint16_t len)
 {
 	int ret;
 
-	struct ble_module_message msg = {0};
+	struct ble_nus_module_message msg = {0};
 
 	msg.type = BLE_RECV;
 	msg.len = len;
 	memcpy(msg.data, data, len);
 	msg.timestamp = k_uptime_get_32();
 
-	ret = zbus_chan_pub(&BLE_CHAN, &msg, K_FOREVER);
+	ret = zbus_chan_pub(&BLE_NUS_CHAN, &msg, K_FOREVER);
 	if (ret != 0) {
 		LOG_ERR("Failed to publish BLE data: %d", ret);
 	}
@@ -112,7 +116,7 @@ static void connected(struct bt_conn *conn, uint8_t err)
 		user_connection_status_cb(conn, true);
 	}
 
-#ifdef CONFIG_BLE_MODULE_DK_SUPPORT
+#ifdef CONFIG_BLE_NUS_MODULE_DK_SUPPORT
 	dk_set_led_on(DK_LED1);
 #endif
 }
@@ -141,7 +145,7 @@ static void disconnected(struct bt_conn *conn, uint8_t reason)
 		bt_conn_unref(current_conn);
 		current_conn = NULL;
 		nus_notifications_enabled = false;
-#ifdef CONFIG_BLE_MODULE_DK_SUPPORT
+#ifdef CONFIG_BLE_NUS_MODULE_DK_SUPPORT
 		dk_set_led_off(DK_LED1);
 #endif
 	}
@@ -297,7 +301,7 @@ static void adv_work_handler(struct k_work *work)
 	LOG_DBG("Advertising successfully started");
 }
 
-static int ble_module_init(const struct ble_module_config *config)
+static int ble_nus_module_init(const struct ble_nus_module_config *config)
 {
 	int err;
 
@@ -350,7 +354,7 @@ static int ble_module_init(const struct ble_module_config *config)
 	return 0;
 }
 
-static int ble_module_enable(void)
+static int ble_nus_module_enable(void)
 {
 	if (module_enabled) {
 		LOG_WRN("BLE module already enabled");
@@ -364,7 +368,7 @@ static int ble_module_enable(void)
 	return 0;
 }
 
-int ble_module_send(const uint8_t *data, uint16_t len)
+int ble_nus_module_send(const uint8_t *data, uint16_t len)
 {
 	if (!data || len == 0) {
 		return -EINVAL;
@@ -392,17 +396,17 @@ int ble_module_send(const uint8_t *data, uint16_t len)
 	return ret;
 }
 
-bool ble_module_is_connected(void)
+bool ble_nus_module_is_connected(void)
 {
 	return current_conn != NULL;
 }
 
-struct bt_conn *ble_module_get_connection(void)
+struct bt_conn *ble_nus_module_get_connection(void)
 {
 	return current_conn;
 }
 
-bool ble_module_is_ready(void)
+bool ble_nus_module_is_ready(void)
 {
 	return current_conn != NULL && nus_notifications_enabled;
 }
@@ -427,7 +431,7 @@ static void send_work_handler(struct k_work *work)
 	tx_len = 0;
 	k_mutex_unlock(&tx_buf_mutex);
 
-	int err = ble_module_send(local_buf, local_len);
+	int err = ble_nus_module_send(local_buf, local_len);
 
 	if (err == 0) {
 		LOG_DBG("Data sent successfully (%zu bytes)", local_len);
@@ -519,7 +523,7 @@ static void default_ready_cb(struct bt_conn *conn, bool ready)
 	}
 }
 
-static int ble_module_auto_init(void)
+static int ble_nus_module_auto_init(void)
 {
 	int err;
 
@@ -529,19 +533,19 @@ static int ble_module_auto_init(void)
 
 	k_work_init(&send_work, send_work_handler);
 
-	struct ble_module_config ble_config = {
+	struct ble_nus_module_config ble_config = {
 		.data_received_cb = default_data_received_cb,
 		.connection_status_cb = default_connection_status_cb,
 		.ready_cb = default_ready_cb,
 	};
 
-	err = ble_module_init(&ble_config);
+	err = ble_nus_module_init(&ble_config);
 	if (err) {
 		LOG_ERR("BLE init failed: %d", err);
 		return err;
 	}
 
-	err = ble_module_enable();
+	err = ble_nus_module_enable();
 	if (err) {
 		LOG_ERR("BLE enable failed: %d", err);
 		return err;
@@ -552,9 +556,9 @@ static int ble_module_auto_init(void)
 	return 0;
 }
 
-SYS_INIT(ble_module_auto_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+SYS_INIT(ble_nus_module_auto_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
 
-#if IS_ENABLED(CONFIG_MDM_BLE_ZBUS_LOGGING)
+#if IS_ENABLED(CONFIG_MDM_BLE_NUS_ZBUS_LOGGING)
 
 static const char *ble_message_type_to_string(enum ble_msg_type type)
 {
@@ -566,9 +570,9 @@ static const char *ble_message_type_to_string(enum ble_msg_type type)
 	}
 }
 
-/* Add a message subscriber to the BLE_CHAN channel to log received messages */
+/* Add a message subscriber to the BLE_NUS_CHAN channel to log received messages */
 ZBUS_MSG_SUBSCRIBER_DEFINE(test_msg_subscriber);
-ZBUS_CHAN_ADD_OBS(BLE_CHAN, test_msg_subscriber, 0);
+ZBUS_CHAN_ADD_OBS(BLE_NUS_CHAN, test_msg_subscriber, 0);
 
 static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
 {
@@ -577,11 +581,11 @@ static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
 	ARG_UNUSED(unused3);
 
 	const struct zbus_channel *chan;
-	struct ble_module_message msg;
+	struct ble_nus_module_message msg;
 
 	while (true) {
 		if (zbus_sub_wait_msg(&test_msg_subscriber, &chan, &msg, K_FOREVER) == 0) {
-			if (chan == &BLE_CHAN) {
+			if (chan == &BLE_NUS_CHAN) {
 				LOG_INF("=== ZBUS Message Received ===");
 				LOG_INF("Type: %s", ble_message_type_to_string(msg.type));
 				LOG_INF("Timestamp: %u ms", msg.timestamp);
@@ -611,7 +615,7 @@ static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
 	}
 }
 
-K_THREAD_DEFINE(test_subscriber_tid, CONFIG_MDM_BLE_ZBUS_LOGGING_STACK_SIZE, test_subscriber_thread,
-		NULL, NULL, NULL, CONFIG_MDM_BLE_ZBUS_LOGGING_PRIORITY, 0, 0);
+K_THREAD_DEFINE(test_subscriber_tid, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_STACK_SIZE, test_subscriber_thread,
+		NULL, NULL, NULL, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_PRIORITY, 0, 0);
 
-#endif /* CONFIG_MDM_BLE_ZBUS_LOGGING */
+#endif /* CONFIG_MDM_BLE_NUS_ZBUS_LOGGING */
