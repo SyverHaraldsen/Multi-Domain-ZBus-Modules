@@ -38,20 +38,6 @@ struct led_msg {
 	int repetitions;
 };
 
-/* Helper macro to invert CONFIG_MDM_LED_MASTER */
-#if IS_ENABLED(CONFIG_MDM_LED_RUNNER)
-#define MDM_LED_CHANNEL_IS_LISTENER 0
-#else
-#define MDM_LED_CHANNEL_IS_LISTENER 1
-#endif
-
-ZBUS_MULTIDOMAIN_CHAN_DEFINE(LED_CHAN,
-			     struct led_msg,
-			     NULL,
-			     NULL,
-			     ZBUS_OBSERVERS_EMPTY,
-			     ZBUS_MSG_INIT(0),
-			     MDM_LED_CHANNEL_IS_LISTENER, /* Runner is listener */
-			     IS_ENABLED(CONFIG_MDM_LED));
+ZBUS_CHAN_DECLARE(LED_CHAN);
 
 #endif /* _MULTI_DOMAIN_MODULES_LED_SHARED_ZBUS_H_ */

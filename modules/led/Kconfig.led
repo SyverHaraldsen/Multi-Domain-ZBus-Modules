@@ -6,19 +6,10 @@
 
 rsource "Kconfig.multidomain_channels"
 
-if MDM_LED
+if MDM_LED_RUNNER
 
 module = MDM_LED
 module-str = LED
 source "subsys/logging/Kconfig.template.log_config"
 
-endif # MDM_LED
-
-# Module defaults
-if MDM_LED
-
-config GPIO
-	bool
-	default y
-
-endif # MDM_LED
+endif # MDM_LED_RUNNER
