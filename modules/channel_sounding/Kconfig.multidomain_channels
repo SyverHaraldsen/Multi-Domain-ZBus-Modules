@@ -1,8 +1,5 @@
-#
 # Copyright (c) 2025 Nordic Semiconductor
-#
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
-#
 
 menuconfig MDM_CHANNEL_SOUNDING
 	bool "Channel Sounding module"
@@ -16,8 +13,6 @@ if MDM_CHANNEL_SOUNDING
 config MDM_CHANNEL_SOUNDING_RUNNER
 	bool "Module is running on this image"
 	default n
-	depends on BT
-	depends on BT_CHANNEL_SOUNDING
 	help
 	  Select if this module is running on this image.
 
