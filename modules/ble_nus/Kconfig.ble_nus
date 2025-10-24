@@ -3,7 +3,32 @@
 
 rsource "Kconfig.multidomain_channels"
 
+config MDM_BLE_NUS_RUNNER
+	select BT
+	select BT_PERIPHERAL
+	select BT_NUS
+	select BT_SETTINGS
+	select SETTINGS
+	select FLASH
+	select FLASH_PAGE_LAYOUT
+	select FLASH_MAP
+	select NVS
+	select MPU_ALLOW_FLASH_WRITE
+	select DK_LIBRARY
+
 if MDM_BLE_NUS_RUNNER
+
+config BT_DEVICE_NAME
+	default "Nordic_UART_Service"
+
+config BT_MAX_CONN
+	default 1
+
+config BT_MAX_PAIRED
+	default 1
+
+config HEAP_MEM_POOL_SIZE
+	default 2048
 
 config BLE_NUS_MODULE_DK_SUPPORT
 	bool "Enable DK LED support"

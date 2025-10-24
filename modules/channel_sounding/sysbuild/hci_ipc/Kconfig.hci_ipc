@@ -1,0 +1,58 @@
+# Copyright (c) 2025 Nordic Semiconductor ASA
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+config ipc_radio_CONFIG_IPC_SERVICE
+	bool
+	default y
+
+config ipc_radio_CONFIG_MBOX
+	bool
+	default y
+
+config ipc_radio_CONFIG_HEAP_MEM_POOL_SIZE
+	int
+	default 4096
+
+config ipc_radio_CONFIG_BT
+	bool
+	default y
+
+config ipc_radio_CONFIG_BT_HCI_RAW
+	bool
+	default y
+
+config ipc_radio_CONFIG_BT_CENTRAL
+	bool
+	default y
+
+config ipc_radio_CONFIG_BT_CTLR_CHANNEL_SOUNDING
+	bool
+	default y
+
+config ipc_radio_CONFIG_BT_CTLR_CHANNEL_SOUNDING_TEST
+	bool
+	default n
+
+config ipc_radio_CONFIG_BT_CTLR_DATA_LENGTH_MAX
+	int
+	default 251
+
+config ipc_radio_CONFIG_BT_CTLR_PHY_2M
+	bool
+	default y
+
+config ipc_radio_CONFIG_BT_BUF_EVT_RX_SIZE
+	int
+	default 255
+
+config ipc_radio_CONFIG_BT_CTLR_SDC_CS_MAX_ANTENNA_PATHS
+	int
+	default 1
+
+config ipc_radio_CONFIG_BT_CTLR_SDC_CS_NUM_ANTENNAS
+	int
+	default 1
+
+config ipc_radio_CONFIG_BT_CTLR_SDC_CS_STEP_MODE3
+	bool
+	default n

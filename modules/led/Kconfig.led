@@ -1,10 +1,11 @@
-#
-# Copyright (c) 2024 Nordic Semiconductor
-#
+# Copyright (c) 2025 Nordic Semiconductor ASA
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
-#
 
 rsource "Kconfig.multidomain_channels"
+
+config MDM_LED_RUNNER
+	select GPIO
+	select DK_LIBRARY
 
 if MDM_LED_RUNNER
 

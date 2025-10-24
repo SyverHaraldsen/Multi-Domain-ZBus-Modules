@@ -1,11 +1,8 @@
-#
 # Copyright (c) 2025 Nordic Semiconductor ASA
-#
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
-#
+
+rsource "../modules/ble_nus/Kconfig.ble_nus"
+rsource "../modules/led/Kconfig.led"
+rsource "../modules/channel_sounding/Kconfig.channel_sounding"
 
 source "Kconfig.zephyr"
-
-source "$(APPLICATION_SOURCE_DIR)/../modules/ble_nus/Kconfig.ble_nus"
-source "$(APPLICATION_SOURCE_DIR)/../modules/led/Kconfig.led"
-source "$(APPLICATION_SOURCE_DIR)/../modules/channel_sounding/Kconfig.channel_sounding"

@@ -1,0 +1,30 @@
+# Copyright (c) 2025 Nordic Semiconductor
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+config ipc_radio_CONFIG_SERIAL
+	bool
+	default n
+
+config ipc_radio_CONFIG_UART_CONSOLE
+	bool
+	default n
+
+config ipc_radio_CONFIG_LOG
+	bool
+	default n
+
+config ipc_radio_CONFIG_BT_PERIPHERAL
+	bool
+	default y
+
+config ipc_radio_CONFIG_BT_MAX_CONN
+	int
+	default 1
+
+config ipc_radio_CONFIG_BT_MAX_PAIRED
+	int
+	default 1
+
+config ipc_radio_CONFIG_BT_DEVICE_NAME
+	string
+	default "Nordic_UART_Service"

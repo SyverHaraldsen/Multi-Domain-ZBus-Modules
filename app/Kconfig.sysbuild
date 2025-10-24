@@ -3,4 +3,5 @@
 
 source "share/sysbuild/Kconfig"
 
+rsource "../modules/ble_nus/Kconfig.sysbuild"
 rsource "../modules/channel_sounding/Kconfig.sysbuild"
