@@ -15,11 +15,6 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/reboot.h>
 
-/* Build-time check: Channel Sounding and BLE NUS cannot coexist due to BLE role conflicts */
-BUILD_ASSERT(!IS_ENABLED(CONFIG_MDM_BLE_NUS),
-	     "Cannot enable both Channel Sounding and BLE NUS modules - "
-	     "BLE role conflict: Channel Sounding requires central-only mode, BLE NUS requires "
-	     "peripheral mode");
 #include <zephyr/bluetooth/cs.h>
 #include <zephyr/bluetooth/gatt.h>
 #include <zephyr/bluetooth/conn.h>
@@ -363,6 +358,13 @@ static bool le_param_req(struct bt_conn *conn, struct bt_le_conn_param *param)
 static void connected_cb(struct bt_conn *conn, uint8_t err)
 {
 	char addr[BT_ADDR_LE_STR_LEN];
+	struct bt_conn_info info;
+
+	bt_conn_get_info(conn, &info);
+	if (info.role != BT_CONN_ROLE_CENTRAL) {
+		LOG_DBG("Ignoring peripheral connection (not our role)");
+		return;
+	}
 
 	(void)bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	LOG_INF("Connected to %s (err 0x%02X)", addr, err);
@@ -381,6 +383,11 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
 
 static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
 {
+	if (conn != connection) {
+		LOG_DBG("Ignoring disconnect for non-CS connection");
+		return;
+	}
+
 	LOG_INF("Disconnected (reason 0x%02X)", reason);
 
 	bt_conn_unref(conn);
@@ -611,7 +618,10 @@ static void channel_sounding_thread(void *p1, void *p2, void *p3)
 	dk_leds_init();
 
 	err = bt_enable(NULL);
-	if (err) {
+	if (err == -EALREADY) {
+		LOG_DBG("Bluetooth already enabled");
+	}
+	else if (err) {
 		LOG_ERR("Bluetooth init failed (err %d)", err);
 		return;
 	}

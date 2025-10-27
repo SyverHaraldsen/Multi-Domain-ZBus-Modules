@@ -19,11 +19,7 @@ config MDM_BLE_NUS_RUNNER
 if MDM_BLE_NUS_RUNNER
 
 config BT_DEVICE_NAME
-	default "Nordic_UART_Service"
-
-config BT_MAX_CONN
-	default 1
-
+	default "MDM_UART_Service"
 config BT_MAX_PAIRED
 	default 1
 

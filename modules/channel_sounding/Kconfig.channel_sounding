@@ -42,8 +42,6 @@ config MDM_CHANNEL_SOUNDING_RUNNER
 	endchoice
 	config BT_CTLR_CHANNEL_SOUNDING_TEST
 		default n
-	config BT_MAX_CONN
-		default 1
 	config BT_SCAN_UUID_CNT
 		default 1
 	config BT_L2CAP_TX_MTU

@@ -4,3 +4,6 @@
 target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/ble_nus.c)
 
 target_include_directories(app PRIVATE .)
+
+# Include files that are common for all modules
+target_include_directories(app PRIVATE ../common)
