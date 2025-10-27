@@ -21,7 +21,7 @@ Provides Bluetooth Low Energy Nordic UART Service functionality. Publishes recei
 - **Channel**: `BLE_NUS_CHAN`
 - **Runner**: Runs on the domain with Bluetooth stack
 - **Use Case**: Wireless communication, data exchange, mobile app integration
-- **Note**: Cannot be enabled simultaneously with Channel Sounding module
+- **BLE Role**: Peripheral (accepts connections from phones/centrals)
 
 ### Channel Sounding Module (`modules/channel_sounding`)
 Implements Bluetooth Channel Sounding as an initiator that ranges with reflector devices. Publishes distance measurements to the `CS_DISTANCE_CHAN` channel.
@@ -30,7 +30,7 @@ Implements Bluetooth Channel Sounding as an initiator that ranges with reflector
 - **Channel**: `CS_DISTANCE_CHAN`
 - **Runner**: Runs on the domain with Channel Sounding capability
 - **Use Case**: Distance measurement, proximity detection, asset tracking
-- **Note**: Cannot be enabled simultaneously with BLE NUS module
+- **BLE Role**: Central (initiates connections to reflectors)
 
 Each module is self-contained with its own Kconfig, CMakeLists.txt, and ZBus channel definitions, making it easy to enable/disable modules based on your application needs.
 
@@ -142,7 +142,7 @@ target_include_directories(app PRIVATE .)
 target_include_directories(app PRIVATE ../common)
 ```
 
-**`Kconfig.multidomain_channels`** - Module enablement:
+**`Kconfig.multidomain_channels`** - Module enablement (available to ALL domains):
 ```kconfig
 menuconfig MDM_MY_MODULE
 	bool "My Module"
@@ -160,9 +160,15 @@ config MDM_MY_MODULE_RUNNER
 endif
 ```
 
-**`Kconfig.my_module`** - Module-specific configuration:
+**Important:** This file is available to all domains/images, even if they're not running the module. This allows every domain to know about the module's existence for ZBus channel configuration.
+
+**`Kconfig.my_module`** - Module-specific configuration (runner domain only):
 ```kconfig
 rsource "Kconfig.multidomain_channels"
+
+config MDM_MY_MODULE_RUNNER
+	select REQUIRED_DEPENDENCY_1
+	select REQUIRED_DEPENDENCY_2
 
 if MDM_MY_MODULE_RUNNER
 
@@ -170,15 +176,10 @@ module = MDM_MY_MODULE
 module-str = MY_MODULE
 source "subsys/logging/Kconfig.template.log_config"
 
-endif
-
 endif # MDM_MY_MODULE_RUNNER
 ```
 
-**`my_module.conf`** - Module overlay configuration:
-```conf
-# Module-specific configuration options
-```
+**Important:** This file is where you `select` dependencies and configure what the module needs to run (BLE stack, sensors, etc). Only the domain running the module includes this file.
 
 **`my_module.h`** - Module header:
 ```c
@@ -259,18 +260,10 @@ ZBUS_CHAN_DEFINE(MY_MODULE_CHAN,
 
 **In `app/Kconfig`**, add:
 ```kconfig
-source "$(APPLICATION_SOURCE_DIR)/../modules/my_module/Kconfig.my_module"
+rsource "../modules/my_module/Kconfig.my_module"
 ```
 
 **In `app/CMakeLists.txt`**, add:
-
-In the config fragment section:
-```cmake
-add_config_fragment_ifdef(CONFIG_MDM_MY_MODULE
-	"${CMAKE_CURRENT_SOURCE_DIR}/../modules/my_module/my_module.conf")
-```
-
-In the subdirectory section:
 ```cmake
 add_subdirectory_ifdef(CONFIG_MDM_MY_MODULE_RUNNER ../modules/my_module ${CMAKE_BINARY_DIR}/modules/my_module)
 ```
@@ -287,18 +280,29 @@ CONFIG_MDM_MY_MODULE_RUNNER=y
 
 If your module needs to configure other images (e.g., network core, radio core):
 
-**Create `sysbuild/hci_ipc/prj.conf`** - Configuration for the radio/network core:
-```conf
-# Module-specific radio core configuration
-CONFIG_IPC_SERVICE=y
-CONFIG_MBOX=y
-CONFIG_HEAP_MEM_POOL_SIZE=4096
+**Determine your image name** - Common names are `ipc_radio`, `hci_ipc`, `remote`, etc. For nRF54L with Bluetooth, use `ipc_radio`.
+
+**Create `sysbuild/<image_name>/Kconfig.<image_name>`** - Configuration for the remote image:
+
+Example for `ipc_radio` image:
+```kconfig
+# Copyright (c) 2025 Nordic Semiconductor
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+
+config ipc_radio_CONFIG_IPC_SERVICE
+	bool
+	default y
+
+config ipc_radio_CONFIG_MBOX
+	bool
+	default y
+
+config ipc_radio_CONFIG_HEAP_MEM_POOL_SIZE
+	int
+	default 4096
 ```
 
-**Create `sysbuild_fragment.cmake`** - Include the partial config:
-```cmake
-list(APPEND ipc_radio_CONF_FILE ${CMAKE_CURRENT_LIST_DIR}/sysbuild/hci_ipc/prj.conf)
-```
+**Note:** The config symbol prefix must match the image name (e.g., `ipc_radio_CONFIG_*` for the `ipc_radio` image).
 
 **Create `Kconfig.sysbuild`** - Sysbuild-level Kconfig options:
 ```kconfig
@@ -310,19 +314,14 @@ config NRF_DEFAULT_BLUETOOTH
 config NETCORE_IPC_RADIO_BT_HCI_IPC
 	default y
 
-endif
+rsource "sysbuild/ipc_radio/Kconfig.ipc_radio"
+
+endif # MDM_MY_MODULE
 ```
 
 **Register in `app/Kconfig.sysbuild`:**
 ```kconfig
 rsource "../modules/my_module/Kconfig.sysbuild"
-```
-
-**Register in `app/sysbuild.cmake`:**
-```cmake
-if(CONFIG_MDM_MY_MODULE)
-	include(${CMAKE_CURRENT_LIST_DIR}/../modules/my_module/sysbuild_fragment.cmake)
-endif()
 ```
 
 </details>

@@ -5,4 +5,20 @@ rsource "../modules/ble_nus/Kconfig.ble_nus"
 rsource "../modules/led/Kconfig.led"
 rsource "../modules/channel_sounding/Kconfig.channel_sounding"
 
+# BLE connection management
+config BT_MAX_CONN
+	default 2 if (MDM_BLE_NUS_RUNNER && MDM_CHANNEL_SOUNDING_RUNNER)
+	default 1
+
+# Dual-role BLE support when both modules are enabled
+if MDM_BLE_NUS_RUNNER && MDM_CHANNEL_SOUNDING_RUNNER
+
+config BT_PERIPHERAL
+	default y
+
+config BT_CENTRAL
+	default y
+
+endif
+
 source "Kconfig.zephyr"
