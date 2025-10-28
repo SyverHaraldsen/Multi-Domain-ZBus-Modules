@@ -38,6 +38,9 @@ LOG_MODULE_REGISTER(ble_nus_module, CONFIG_BLE_NUS_MODULE_LOG_LEVEL);
 #define BLE_ATT_PRIME_DELAY_MS 200
 #define BLE_MAX_PRINT_LEN      256
 
+#define BLE_NUS_CONN_INTERVAL_MIN BT_GAP_ADV_FAST_INT_MIN_2 / 2
+#define BLE_NUS_CONN_INTERVAL_MAX BT_GAP_ADV_FAST_INT_MAX_2 / 2
+
 /* Internal callback types */
 typedef void (*ble_data_received_cb_t)(struct bt_conn *conn, const uint8_t *data, uint16_t len);
 typedef void (*ble_connection_status_cb_t)(struct bt_conn *conn, bool connected);
@@ -110,9 +113,27 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	}
 
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
-	LOG_DBG("Connected %s", addr);
+	LOG_INF("BLE NUS Connected to %s", addr);
+	LOG_INF("Negotiated connection parameters: interval %u (%.1fms), latency %u, timeout %u",
+		info.le.interval, (double)(info.le.interval * 1.25), info.le.latency, info.le.timeout);
 
 	current_conn = bt_conn_ref(conn);
+
+	struct bt_le_conn_param param = {
+		.interval_min = BLE_NUS_CONN_INTERVAL_MIN,
+		.interval_max = BLE_NUS_CONN_INTERVAL_MAX,
+		.latency = 0,
+		.timeout = CONFIG_BLE_NUS_CONN_TIMEOUT,
+	};
+
+	err = bt_conn_le_param_update(conn, &param);
+	if (err) {
+		LOG_WRN("Failed to request connection parameter update (err %d)", err);
+	} else {
+		LOG_INF("Requested parameter update to %u-%u (%.0f-%.0fms)",
+			param.interval_min, param.interval_max,
+			(double)(param.interval_min * 1.25), (double)(param.interval_max * 1.25));
+	}
 
 	if (user_connection_status_cb) {
 		user_connection_status_cb(conn, true);
@@ -121,6 +142,17 @@ static void connected(struct bt_conn *conn, uint8_t err)
 #ifdef CONFIG_BLE_NUS_MODULE_DK_SUPPORT
 	dk_set_led_on(DK_LED1);
 #endif
+}
+
+static void le_param_updated(struct bt_conn *conn, uint16_t interval, uint16_t latency,
+			     uint16_t timeout)
+{
+	if (conn != current_conn) {
+		return;
+	}
+
+	LOG_INF("Connection parameters updated: interval %u (%.1fms), latency %u, timeout %u",
+		interval, (double)(interval * 1.25), latency, timeout);
 }
 
 static void disconnected(struct bt_conn *conn, uint8_t reason)
@@ -185,6 +217,7 @@ static void security_changed(struct bt_conn *conn, bt_security_t level, enum bt_
 BT_CONN_CB_DEFINE(conn_callbacks) = {
 	.connected = connected,
 	.disconnected = disconnected,
+	.le_param_updated = le_param_updated,
 	.recycled = recycled_cb,
 #ifdef CONFIG_BT_NUS_SECURITY_ENABLED
 	.security_changed = security_changed,

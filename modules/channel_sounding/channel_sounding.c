@@ -173,7 +173,7 @@ static void ranging_data_cb(struct bt_conn *conn, uint16_t ranging_counter, int 
 	LOG_DBG("Ranging data received for ranging counter %d", ranging_counter);
 
 	if (latest_local_steps.len == 0) {
-		LOG_WRN("All subevents in ranging counter %u were aborted",
+		LOG_DBG("All subevents in ranging counter %u were aborted",
 			most_recent_local_ranging_counter);
 		net_buf_simple_reset(&latest_local_steps);
 		k_sem_give(&sem_local_steps);
