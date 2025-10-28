@@ -20,8 +20,18 @@ if MDM_BLE_NUS_RUNNER
 
 config BT_DEVICE_NAME
 	default "MDM_UART_Service"
+
 config BT_MAX_PAIRED
 	default 1
+
+config BLE_NUS_CONN_TIMEOUT
+	int "BLE connection supervision timeout (units of 10ms)"
+	default 100
+	range 10 3200
+	help
+	  Connection supervision timeout for NUS connections.
+	  Value is in units of 10ms. Range: 100ms (10) to 32s (3200).
+	  Default 100 = 1000ms.
 
 config HEAP_MEM_POOL_SIZE
 	default 2048
