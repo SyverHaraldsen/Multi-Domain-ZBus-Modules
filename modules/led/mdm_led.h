@@ -43,6 +43,16 @@ struct led_msg {
 	int repetitions;
 };
 
+static inline const char *led_message_type_to_string(enum led_msg_type type)
+{
+	switch (type) {
+	case LED_RGB_SET:
+		return "LED_RGB_SET";
+	default:
+		return "UNKNOWN";
+	}
+}
+
 #define MSG_TO_LED_MSG(_msg) ((const struct led_msg *)_msg)
 
 #ifdef __cplusplus

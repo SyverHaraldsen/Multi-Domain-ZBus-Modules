@@ -621,63 +621,36 @@ SYS_INIT(ble_nus_module_auto_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY
 
 #if IS_ENABLED(CONFIG_MDM_BLE_NUS_ZBUS_LOGGING)
 
-static const char *ble_message_type_to_string(enum ble_msg_type type)
+static void log_ble_nus_message(const struct zbus_channel *chan)
 {
-	switch (type) {
-	case BLE_RECV:
-		return "BLE_RECV";
-	default:
-		return "UNKNOWN";
-	}
-}
+	const struct ble_nus_module_message *msg = zbus_chan_const_msg(chan);
+	LOG_INF("=== BLE NUS ZBUS Message Received ===");
+	LOG_INF("Type: %s", ble_message_type_to_string(msg->type));
+	LOG_INF("Timestamp: %u ms", msg->timestamp);
+	LOG_INF("Length: %u bytes", msg->len);
 
-/* Add a message subscriber to the BLE_NUS_CHAN channel to log received messages */
-ZBUS_MSG_SUBSCRIBER_DEFINE(test_msg_subscriber);
-ZBUS_CHAN_ADD_OBS(BLE_NUS_CHAN, test_msg_subscriber, 0);
+	/* Try to print as string if printable */
+	bool printable = true;
 
-static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
-{
-	ARG_UNUSED(unused1);
-	ARG_UNUSED(unused2);
-	ARG_UNUSED(unused3);
-
-	const struct zbus_channel *chan;
-	struct ble_nus_module_message msg;
-
-	while (true) {
-		if (zbus_sub_wait_msg(&test_msg_subscriber, &chan, &msg, K_FOREVER) == 0) {
-			if (chan == &BLE_NUS_CHAN) {
-				LOG_INF("=== ZBUS Message Received ===");
-				LOG_INF("Type: %s", ble_message_type_to_string(msg.type));
-				LOG_INF("Timestamp: %u ms", msg.timestamp);
-				LOG_INF("Length: %u bytes", msg.len);
-
-				/* Try to print as string if printable */
-				bool printable = true;
-
-				for (uint16_t i = 0; i < msg.len; i++) {
-					if (msg.data[i] < 0x20 && msg.data[i] != '\r' &&
-					    msg.data[i] != '\n' && msg.data[i] != '\t') {
-						printable = false;
-						break;
-					}
-				}
-
-				if (printable && msg.len < BLE_MAX_PRINT_LEN) {
-					char str_buf[BLE_MAX_PRINT_LEN];
-
-					memcpy(str_buf, msg.data, msg.len);
-					str_buf[msg.len] = '\0';
-					LOG_INF("As String: \"%s\"", str_buf);
-				}
-				LOG_INF("=============================");
-			}
+	for (uint16_t i = 0; i < msg->len; i++) {
+		if (msg->data[i] < 0x20 && msg->data[i] != '\r' &&
+		    msg->data[i] != '\n' && msg->data[i] != '\t') {
+			printable = false;
+			break;
 		}
 	}
+
+	if (printable && msg->len < BLE_MAX_PRINT_LEN) {
+		char str_buf[BLE_MAX_PRINT_LEN];
+
+		memcpy(str_buf, msg->data, msg->len);
+		str_buf[msg->len] = '\0';
+		LOG_INF("As String: \"%s\"", str_buf);
+	}
+	LOG_INF("=============================");
 }
 
-K_THREAD_DEFINE(test_subscriber_tid, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_STACK_SIZE,
-		test_subscriber_thread, NULL, NULL, NULL, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_PRIORITY,
-		0, 0);
+ZBUS_LISTENER_DEFINE(ble_nus_logger, log_ble_nus_message);
+ZBUS_CHAN_ADD_OBS(BLE_NUS_CHAN, ble_nus_logger, 0);
 
 #endif /* CONFIG_MDM_BLE_NUS_ZBUS_LOGGING */

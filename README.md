@@ -103,6 +103,7 @@ Add the configuration to your `app/prj.conf`:
 # Enable LED module
 CONFIG_MDM_LED=y
 CONFIG_MDM_LED_RUNNER=y
+CONFIG_MDM_LED_ZBUS_LOGGING=y
 
 # Enable BLE NUS module
 CONFIG_MDM_BLE_NUS=y
@@ -112,6 +113,7 @@ CONFIG_MDM_BLE_NUS_ZBUS_LOGGING=y
 # Enable Channel Sounding module
 CONFIG_MDM_CHANNEL_SOUNDING=y
 CONFIG_MDM_CHANNEL_SOUNDING_RUNNER=y
+CONFIG_MDM_CHANNEL_SOUNDING_ZBUS_LOGGING=y
 
 # ZBus multi-domain support
 CONFIG_ZBUS=y

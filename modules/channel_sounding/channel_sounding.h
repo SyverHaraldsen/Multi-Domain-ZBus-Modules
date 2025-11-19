@@ -43,6 +43,16 @@ struct cs_distance_msg {
 	uint32_t timestamp;
 };
 
+static inline const char *cs_message_type_to_string(enum cs_msg_type type)
+{
+	switch (type) {
+	case CS_DISTANCE_MEASUREMENT:
+		return "CS_DISTANCE_MEASUREMENT";
+	default:
+		return "UNKNOWN";
+	}
+}
+
 #ifdef __cplusplus
 }
 #endif
