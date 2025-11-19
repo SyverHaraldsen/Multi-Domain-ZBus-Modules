@@ -7,46 +7,27 @@
 #ifndef BLE_NUS_MODULE_H_
 #define BLE_NUS_MODULE_H_
 
-#include <zephyr/types.h>
-#include <zephyr/bluetooth/conn.h>
-#include <stdint.h>
-#include <stdbool.h>
-
 #include <zephyr/zbus/zbus.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * @brief Send data over BLE NUS service
- *
- * @param data Pointer to data to send
- * @param len Length of data
- * @return 0 on success, negative errno on failure
- */
-int ble_nus_module_send(const uint8_t *data, uint16_t len);
+#define BLE_NUS_MODULE_MESSAGE_SIZE 100
+#define BLE_MAX_PRINT_LEN           256
 
-/**
- * @brief Check if BLE is connected
- *
- * @return true if connected, false otherwise
- */
-bool ble_nus_module_is_connected(void);
+/* Channels provided by this module */
+ZBUS_CHAN_DECLARE(BLE_NUS_CHAN);
 
-/**
- * @brief Get connection object
- *
- * @return Pointer to connection object or NULL if not connected
- */
-struct bt_conn *ble_nus_module_get_connection(void);
-
-/**
- * @brief Check if ready to send (connected and notifications enabled)
- *
- * @return true if ready to send data, false otherwise
- */
-bool ble_nus_module_is_ready(void);
+enum ble_msg_type {
+	BLE_RECV,
+};
+struct ble_nus_module_message {
+	enum ble_msg_type type;
+	uint8_t data[BLE_NUS_MODULE_MESSAGE_SIZE];
+	uint16_t len;
+	uint32_t timestamp;
+};
 
 #ifdef __cplusplus
 }

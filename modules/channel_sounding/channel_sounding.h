@@ -4,20 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/*
- * This header defines the zbus channels used for inter chip communication
- *
- * To use this module, users of this module should set CONFIG_MDM_CHANNEL_SOUNDING=y
- * in the prj.conf file of the application.
- * The runner application should set CONFIG_MDM_CHANNEL_SOUNDING=y and CONFIG_MDM_CHANNEL_SOUNDING_RUNNER=y
- * in the prj.conf file of the application.
- */
-
 #ifndef _MULTI_DOMAIN_MODULES_CHANNEL_SOUNDING_SHARED_ZBUS_H_
 #define _MULTI_DOMAIN_MODULES_CHANNEL_SOUNDING_SHARED_ZBUS_H_
 
 #include <zephyr/zbus/zbus.h>
-#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Channels provided by this module */
+ZBUS_CHAN_DECLARE(CS_DISTANCE_CHAN);
 
 enum cs_msg_type {
 	CS_DISTANCE_MEASUREMENT,
@@ -38,15 +35,16 @@ struct cs_distance_msg {
 	uint8_t antenna_path;
 
 	/** Distance estimates in meters */
-	float ifft;         /* IFFT-based distance estimate */
-	float phase_slope;  /* Phase slope-based distance estimate */
-	float rtt;          /* RTT-based distance estimate */
+	float ifft;        /* IFFT-based distance estimate */
+	float phase_slope; /* Phase slope-based distance estimate */
+	float rtt;         /* RTT-based distance estimate */
 
 	/** Timestamp when measurement was taken */
 	uint32_t timestamp;
 };
 
-ZBUS_CHAN_DECLARE(CS_DISTANCE_CHAN);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _MULTI_DOMAIN_MODULES_CHANNEL_SOUNDING_SHARED_ZBUS_H_ */
-

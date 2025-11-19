@@ -9,21 +9,22 @@
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zbus/zbus.h>
+#include <zephyr/zbus/proxy_agent/zbus_proxy_agent.h>
 
-#include "shared_zbus.h"
-#include "shared_zbus_definition.h"
 #include "module_common.h"
-#include "led.h"
+#include "mdm_led.h"
 
 /* Use GPIO LEDs available on nRF54L15DK */
 #define LED1 DT_ALIAS(led1)
 #define LED2 DT_ALIAS(led2)
 #define LED3 DT_ALIAS(led3)
 
-#if !DT_NODE_HAS_STATUS(LED1, okay) || !DT_NODE_HAS_STATUS(LED2, okay) || \
-        !DT_NODE_HAS_STATUS(LED3, okay)
+#if !DT_NODE_HAS_STATUS(LED1, okay) || !DT_NODE_HAS_STATUS(LED2, okay) ||                          \
+	!DT_NODE_HAS_STATUS(LED3, okay)
 #error "Unsupported board: led1, led2, led3 devicetree alias is not defined"
 #endif
+#warning "This LED module is configured to use binary on/off mapping of leds instead of 	   \
+pwm dimming."
 
 static const struct gpio_dt_spec led1 = GPIO_DT_SPEC_GET(LED1, gpios);
 static const struct gpio_dt_spec led2 = GPIO_DT_SPEC_GET(LED2, gpios);
@@ -31,6 +32,21 @@ static const struct gpio_dt_spec led3 = GPIO_DT_SPEC_GET(LED3, gpios);
 
 /* Register log module */
 LOG_MODULE_REGISTER(led, CONFIG_MDM_LED_LOG_LEVEL);
+
+#ifndef MDM_LED_PROXY_NODE
+#error "MDM_LED_PROXY_NODE must be defined to use multi-domain zbus channels for LED module"
+#endif
+
+/* This file is for the runner side: the controller has the main channel, and the
+ * runner has the shadow channel */
+ZBUS_SHADOW_CHAN_DEFINE(
+	LED_CHAN,
+	struct led_msg,
+	MDM_LED_PROXY_NODE,
+	NULL,
+	ZBUS_OBSERVERS_EMPTY,
+	ZBUS_MSG_INIT(0)
+);
 
 static void led_callback(const struct zbus_channel *chan);
 
@@ -60,9 +76,9 @@ static int gpio_led_out(const struct led_msg *led_msg, bool force_off)
 
 	/* If force_off is true, turn off all LEDs regardless of led_msg values */
 	/* Map RGB values to the available LEDs on nRF54L15DK */
-	bool led1_on = !force_off && (led_msg->red > 0);     /* Red -> LED1 */
-	bool led2_on = !force_off && (led_msg->green > 0);   /* Green -> LED2 */
-	bool led3_on = !force_off && (led_msg->blue > 0);    /* Blue -> LED3 */
+	bool led1_on = !force_off && (led_msg->red > 0);   /* Red -> LED1 */
+	bool led2_on = !force_off && (led_msg->green > 0); /* Green -> LED2 */
+	bool led3_on = !force_off && (led_msg->blue > 0);  /* Blue -> LED3 */
 
 	err = gpio_pin_set_dt(&led1, led1_on);
 	if (err) {

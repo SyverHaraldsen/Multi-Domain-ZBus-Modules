@@ -7,13 +7,3 @@ menuconfig MDM_CHANNEL_SOUNDING
 	  Enable Channel Sounding module.
 	  Note: Cannot be used simultaneously with BLE NUS module due to
 	  BLE role conflicts.
-
-if MDM_CHANNEL_SOUNDING
-
-config MDM_CHANNEL_SOUNDING_RUNNER
-	bool "Module is running on this image"
-	default n
-	help
-	  Select if this module is running on this image.
-
-endif # MDM_CHANNEL_SOUNDING

@@ -5,7 +5,6 @@
  */
 
 #include "ble_nus.h"
-#include "shared_zbus_definition.h"
 
 #include <zephyr/kernel.h>
 
@@ -22,6 +21,7 @@
 #include <bluetooth/services/nus.h>
 
 #include <zephyr/zbus/zbus.h>
+#include <zephyr/zbus/proxy_agent/zbus_proxy_agent.h>
 
 #include <zephyr/settings/settings.h>
 
@@ -31,12 +31,29 @@
 
 #include <zephyr/logging/log.h>
 
-LOG_MODULE_REGISTER(ble_nus_module, CONFIG_BLE_NUS_MODULE_LOG_LEVEL);
+LOG_MODULE_REGISTER(ble_nus_module, CONFIG_MDM_BLE_NUS_LOG_LEVEL);
+
+#ifndef MDM_BLE_NUS_PROXY_NODE
+#error "MDM_BLE_NUS_PROXY_NODE must be defined to use multi-domain zbus channels for BLE NUS module"
+#endif
+
+/* This file is for the runner side: the controller has the shadow channel, and the
+ * runner has the main channel
+ */
+ZBUS_CHAN_DEFINE(
+	BLE_NUS_CHAN,
+	struct ble_nus_module_message,
+	NULL,
+	NULL,
+	ZBUS_OBSERVERS_EMPTY,
+	ZBUS_MSG_INIT(0)
+);
+
+ZBUS_PROXY_ADD_CHAN(MDM_BLE_NUS_PROXY_NODE, BLE_NUS_CHAN);
 
 #define BLE_TX_BUFFER_SIZE     64
 #define BLE_TX_TIMEOUT_MS      1000
 #define BLE_ATT_PRIME_DELAY_MS 200
-#define BLE_MAX_PRINT_LEN      256
 
 #define BLE_NUS_CONN_INTERVAL_MIN BT_GAP_ADV_FAST_INT_MIN_2 / 2
 #define BLE_NUS_CONN_INTERVAL_MAX BT_GAP_ADV_FAST_INT_MAX_2 / 2
@@ -115,7 +132,8 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	bt_addr_le_to_str(bt_conn_get_dst(conn), addr, sizeof(addr));
 	LOG_INF("BLE NUS Connected to %s", addr);
 	LOG_INF("Negotiated connection parameters: interval %u (%.1fms), latency %u, timeout %u",
-		info.le.interval, (double)(info.le.interval * 1.25), info.le.latency, info.le.timeout);
+		info.le.interval, (double)(info.le.interval * 1.25), info.le.latency,
+		info.le.timeout);
 
 	current_conn = bt_conn_ref(conn);
 
@@ -130,9 +148,9 @@ static void connected(struct bt_conn *conn, uint8_t err)
 	if (err) {
 		LOG_WRN("Failed to request connection parameter update (err %d)", err);
 	} else {
-		LOG_INF("Requested parameter update to %u-%u (%.0f-%.0fms)",
-			param.interval_min, param.interval_max,
-			(double)(param.interval_min * 1.25), (double)(param.interval_max * 1.25));
+		LOG_INF("Requested parameter update to %u-%u (%.0f-%.0fms)", param.interval_min,
+			param.interval_max, (double)(param.interval_min * 1.25),
+			(double)(param.interval_max * 1.25));
 	}
 
 	if (user_connection_status_cb) {
@@ -332,10 +350,9 @@ static struct bt_nus_cb nus_cb = {
 static void adv_work_handler(struct k_work *work)
 {
 	int err = bt_le_adv_start(BT_LE_ADV_CONN_FAST_2, ad, ARRAY_SIZE(ad), sd, ARRAY_SIZE(sd));
-	if(err == -EALREADY) {
+	if (err == -EALREADY) {
 		LOG_DBG("Advertising already active");
-	}
-	else if (err) {
+	} else if (err) {
 		LOG_ERR("Advertising failed to start (err %d)", err);
 		return;
 	}
@@ -370,8 +387,7 @@ static int ble_nus_module_init(const struct ble_nus_module_config *config)
 	err = bt_enable(NULL);
 	if (err == -EALREADY) {
 		LOG_DBG("Bluetooth already enabled");
-	}
-	else if (err) {
+	} else if (err) {
 		LOG_ERR("Bluetooth init failed (err %d)", err);
 		return err;
 	}
@@ -573,7 +589,7 @@ static int ble_nus_module_auto_init(void)
 	int err;
 
 	LOG_INF("=================================");
-	LOG_INF("  BLE NUS Application");
+	LOG_INF("  BLE NUS module running");
 	LOG_INF("=================================");
 
 	k_work_init(&send_work, send_work_handler);
@@ -660,7 +676,8 @@ static void test_subscriber_thread(void *unused1, void *unused2, void *unused3)
 	}
 }
 
-K_THREAD_DEFINE(test_subscriber_tid, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_STACK_SIZE, test_subscriber_thread,
-		NULL, NULL, NULL, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_PRIORITY, 0, 0);
+K_THREAD_DEFINE(test_subscriber_tid, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_STACK_SIZE,
+		test_subscriber_thread, NULL, NULL, NULL, CONFIG_MDM_BLE_NUS_ZBUS_LOGGING_PRIORITY,
+		0, 0);
 
 #endif /* CONFIG_MDM_BLE_NUS_ZBUS_LOGGING */

@@ -1,12 +1,15 @@
 # Copyright (c) 2025 Nordic Semiconductor ASA
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
-rsource "Kconfig.multidomain_channels"
+rsource "Kconfig.multidomain"
+
+if MDM_CHANNEL_SOUNDING
 
 config MDM_CHANNEL_SOUNDING_RUNNER
+	bool "This image runs the multi-domain Channel Sounding module"
+	default n
 	select NCS_SAMPLES_DEFAULTS
 	select DK_LIBRARY
-
 	select BT
 	select BT_SMP
 	select BT_CENTRAL
@@ -20,41 +23,55 @@ config MDM_CHANNEL_SOUNDING_RUNNER
 	select BT_CS_DE
 	select BT_CS_DE_512_NFFT
 	select BT_TRANSMIT_POWER_CONTROL
-
 	select FPU
 	select FPU_SHARING
 	select CBPRINTF_FP_SUPPORT
 
-	config BT_BONDABLE
-		default n
-	config BT_RAS_MODE_3_SUPPORTED
-		default n
-	config BT_RAS_MAX_ANTENNA_PATHS
-		default 1
-	config BT_CTLR_SDC_CS_MAX_ANTENNA_PATHS
-		default 1
-	config BT_CTLR_SDC_CS_NUM_ANTENNAS
-		default 1
-	config BT_CTLR_SDC_CS_STEP_MODE3
-		default n
-	choice BT_CTLR_SDC_CS_ROLE
-		default BT_CTLR_SDC_CS_ROLE_INITIATOR_ONLY
-	endchoice
-	config BT_CTLR_CHANNEL_SOUNDING_TEST
-		default n
-	config BT_SCAN_UUID_CNT
-		default 1
-	config BT_L2CAP_TX_MTU
-		default 498
-	config BT_BUF_ACL_TX_SIZE
-		default 502
-	config BT_BUF_ACL_RX_SIZE
-		default 502
-	config BT_ATT_PREPARE_COUNT
-		default 3
-	config BT_CTLR_DATA_LENGTH_MAX
-		default 251
+
 if MDM_CHANNEL_SOUNDING_RUNNER
+
+config BT_BONDABLE
+	default n
+
+config BT_RAS_MODE_3_SUPPORTED
+	default n
+
+config BT_RAS_MAX_ANTENNA_PATHS
+	default 1
+
+config BT_CTLR_SDC_CS_MAX_ANTENNA_PATHS
+	default 1
+
+config BT_CTLR_SDC_CS_NUM_ANTENNAS
+	default 1
+
+config BT_CTLR_SDC_CS_STEP_MODE3
+	default n
+
+choice BT_CTLR_SDC_CS_ROLE
+	default BT_CTLR_SDC_CS_ROLE_INITIATOR_ONLY
+endchoice
+
+config BT_CTLR_CHANNEL_SOUNDING_TEST
+	default n
+
+config BT_SCAN_UUID_CNT
+	default 1
+
+config BT_L2CAP_TX_MTU
+	default 498
+
+config BT_BUF_ACL_TX_SIZE
+	default 502
+
+config BT_BUF_ACL_RX_SIZE
+	default 502
+
+config BT_ATT_PREPARE_COUNT
+	default 3
+
+config BT_CTLR_DATA_LENGTH_MAX
+	default 251
 
 config CHANNEL_SOUNDING_THREAD_STACK_SIZE
 	int "Channel Sounding thread stack size"
@@ -68,8 +85,10 @@ config CHANNEL_SOUNDING_THREAD_PRIORITY
 	help
 	  Priority for the channel sounding thread.
 
-module = CHANNEL_SOUNDING_MODULE
-module-str = channel_sounding_module
+module = MDM_CHANNEL_SOUNDING
+module-str = mdm_channel_sounding
 source "subsys/logging/Kconfig.template.log_config"
 
 endif # MDM_CHANNEL_SOUNDING_RUNNER
+
+endif # MDM_CHANNEL_SOUNDING

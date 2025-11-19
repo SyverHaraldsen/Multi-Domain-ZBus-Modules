@@ -9,8 +9,10 @@
 		nordic,nus-uart = &uart20;
 	};
 
-	aliases {
-		zbus-uart = &uart30;
+	uart_proxy_agent: uart-proxy {
+		compatible = "zephyr,zbus-proxy-agent-uart";
+		status = "okay";
+		uart-device = <&uart30>;
 	};
 };
 

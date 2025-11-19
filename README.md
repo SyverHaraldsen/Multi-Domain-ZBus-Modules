@@ -1,10 +1,10 @@
 # Multi-Domain ZBus Modules
 
-A modular architecture for applications using Zephyr RTOS and ZBus for inter-domain communication.
+A modular architecture for applications using Zephyr RTOS and ZBus proxy agents for inter-domain communication.
 
 ## Modules
 
-This project includes three example modules that demonstrate inter-module communication using ZBus channels:
+This project includes three example modules that demonstrate inter-module communication using ZBus channels and proxy agents:
 
 ### LED Module (`modules/led`)
 Controls RGB LEDs based on commands received via ZBus. The module listens to the `LED_CHAN` channel and executes LED operations (color, blinking patterns, duration).
@@ -107,13 +107,37 @@ CONFIG_MDM_LED_RUNNER=y
 # Enable BLE NUS module
 CONFIG_MDM_BLE_NUS=y
 CONFIG_MDM_BLE_NUS_RUNNER=y
+CONFIG_MDM_BLE_NUS_ZBUS_LOGGING=y
 
 # Enable Channel Sounding module
 CONFIG_MDM_CHANNEL_SOUNDING=y
 CONFIG_MDM_CHANNEL_SOUNDING_RUNNER=y
+
+# ZBus multi-domain support
+CONFIG_ZBUS=y
+CONFIG_ZBUS_CHANNEL_NAME=y
+CONFIG_ZBUS_MSG_SUBSCRIBER=y
+CONFIG_POLL=y
+CONFIG_ZBUS_PROXY_AGENT=y
+
+# ZBus UART backend
+CONFIG_CRC=y
+CONFIG_SERIAL=y
+CONFIG_UART_ASYNC_API=y
+CONFIG_ZBUS_PROXY_AGENT_UART=y
 ```
 
-The `_RUNNER` suffix indicates that the module runs on the current image/domain. If the module is enabled, this config will determine how to set up the multidomain ZBus channels.
+The `_RUNNER` suffix indicates that the module runs on the current image/domain. Each module uses ZBus proxy agents for inter-domain communication via UART.
+
+**Device Tree Configuration:** You also need to define a UART proxy agent in your board overlay file:
+
+```dts
+uart_proxy_agent: uart-proxy {
+    compatible = "zephyr,zbus-proxy-agent-uart";
+    status = "okay";
+    uart-device = <&uart30>;
+};
+```
 
 #### To Disable a Module
 
@@ -142,41 +166,39 @@ target_include_directories(app PRIVATE .)
 target_include_directories(app PRIVATE ../common)
 ```
 
-**`Kconfig.multidomain_channels`** - Module enablement (available to ALL domains):
+**`Kconfig.multidomain`** - Module enablement (available to ALL domains):
 ```kconfig
 menuconfig MDM_MY_MODULE
 	bool "My Module"
 	help
 	  Enable My Module
+```
+
+**Important:** This file is available to all domains/images, even if they're not running the module. This allows every domain to know about the module's existence.
+
+**`Kconfig.my_module`** - Module-specific configuration (runner domain only):
+```kconfig
+rsource "Kconfig.multidomain"
 
 if MDM_MY_MODULE
 
 config MDM_MY_MODULE_RUNNER
 	bool "Module is running on this image"
 	default n
-	help
-	  Select if this module is running on this image.
-
-endif
-```
-
-**Important:** This file is available to all domains/images, even if they're not running the module. This allows every domain to know about the module's existence for ZBus channel configuration.
-
-**`Kconfig.my_module`** - Module-specific configuration (runner domain only):
-```kconfig
-rsource "Kconfig.multidomain_channels"
-
-config MDM_MY_MODULE_RUNNER
 	select REQUIRED_DEPENDENCY_1
 	select REQUIRED_DEPENDENCY_2
+	help
+	  Select if this module is running on this image.
 
 if MDM_MY_MODULE_RUNNER
 
 module = MDM_MY_MODULE
-module-str = MY_MODULE
+module-str = mdm_my_module
 source "subsys/logging/Kconfig.template.log_config"
 
 endif # MDM_MY_MODULE_RUNNER
+
+endif # MDM_MY_MODULE
 ```
 
 **Important:** This file is where you `select` dependencies and configure what the module needs to run (BLE stack, sensors, etc). Only the domain running the module includes this file.
@@ -186,32 +208,14 @@ endif # MDM_MY_MODULE_RUNNER
 #ifndef MY_MODULE_H_
 #define MY_MODULE_H_
 
-#endif /* MY_MODULE_H_ */
-```
-
-**`my_module.c`** - Module implementation:
-```c
-#include "my_module.h"
-#include "shared_zbus_definition.h"
-#include <zephyr/logging/log.h>
-
-LOG_MODULE_REGISTER(my_module, CONFIG_MDM_MY_MODULE_LOG_LEVEL);
-
-int my_module_init(void)
-{
-	LOG_INF("My Module initialized");
-	return 0;
-}
-
-SYS_INIT(my_module_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
-```
-
-**`shared_zbus.h`** - ZBus message types and channel declaration:
-```c
-#ifndef _MULTI_DOMAIN_MODULES_MY_MODULE_SHARED_ZBUS_H_
-#define _MULTI_DOMAIN_MODULES_MY_MODULE_SHARED_ZBUS_H_
-
 #include <zephyr/zbus/zbus.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Channels provided by this module */
+ZBUS_CHAN_DECLARE(MY_MODULE_CHAN);
 
 enum my_module_msg_type {
 	MY_MODULE_DATA,
@@ -223,37 +227,66 @@ struct my_module_msg {
 	uint32_t timestamp;
 };
 
-ZBUS_CHAN_DECLARE(MY_MODULE_CHAN);
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* MY_MODULE_H_ */
 ```
 
-**`shared_zbus_definition.h`** - ZBus channel definition:
+**`my_module.c`** - Module implementation:
 ```c
-#ifndef _MULTI_DOMAIN_MODULES_MY_MODULE_SHARED_ZBUS_DEFINITION_H_
-#define _MULTI_DOMAIN_MODULES_MY_MODULE_SHARED_ZBUS_DEFINITION_H_
+#include "my_module.h"
+#include <zephyr/zbus/zbus.h>
+#include <zephyr/zbus/proxy_agent/zbus_proxy_agent.h>
+#include <zephyr/logging/log.h>
 
-#include "shared_zbus.h"
+LOG_MODULE_REGISTER(my_module, CONFIG_MDM_MY_MODULE_LOG_LEVEL);
 
-#if IS_ENABLED(CONFIG_ZBUS_MULTIDOMAIN)
-ZBUS_MULTIDOMAIN_CHAN_DEFINE(MY_MODULE_CHAN,
-			     struct my_module_msg,
-			     NULL,
-			     NULL,
-			     ZBUS_OBSERVERS_EMPTY,
-			     ZBUS_MSG_INIT(0),
-			     IS_ENABLED(CONFIG_MDM_MY_MODULE_RUNNER),
-			     IS_ENABLED(CONFIG_MDM_MY_MODULE));
-#else
-ZBUS_CHAN_DEFINE(MY_MODULE_CHAN,
-		 struct my_module_msg,
-		 NULL,
-		 NULL,
-		 ZBUS_OBSERVERS_EMPTY,
-		 ZBUS_MSG_INIT(0));
+#ifndef MDM_MY_MODULE_PROXY_NODE
+#error "MDM_MY_MODULE_PROXY_NODE must be defined to use multi-domain zbus channels"
 #endif
 
+/* The module runner has the main channel */
+ZBUS_CHAN_DEFINE(
+	MY_MODULE_CHAN,
+	struct my_module_msg,
+	NULL,
+	NULL,
+	ZBUS_OBSERVERS_EMPTY,
+	ZBUS_MSG_INIT(0)
+);
+
+ZBUS_PROXY_ADD_CHAN(MDM_MY_MODULE_PROXY_NODE, MY_MODULE_CHAN);
+
+int my_module_init(void)
+{
+	LOG_INF("My Module initialized");
+	return 0;
+}
+
+SYS_INIT(my_module_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+```
+
+**`remote_zbus.c`** - Remote ZBus shadow channel (for non-runner domains):
+```c
+#include <zephyr/zbus/zbus.h>
+#include <zephyr/zbus/proxy_agent/zbus_proxy_agent.h>
+#include "my_module.h"
+
+#ifndef MDM_MY_MODULE_PROXY_NODE
+#error "MDM_MY_MODULE_PROXY_NODE must be defined to use multi-domain zbus channels"
 #endif
+
+/* The module runner has the main channel, controller the shadow channel */
+ZBUS_SHADOW_CHAN_DEFINE(
+	MY_MODULE_CHAN,
+	struct my_module_msg,
+	MDM_MY_MODULE_PROXY_NODE,
+	NULL,
+	ZBUS_OBSERVERS_EMPTY,
+	ZBUS_MSG_INIT(0)
+);
 ```
 
 #### 2. Register Module in App Configuration
@@ -265,7 +298,17 @@ rsource "../modules/my_module/Kconfig.my_module"
 
 **In `app/CMakeLists.txt`**, add:
 ```cmake
+# Add proxy node definitions for your module
+target_compile_definitions(app PRIVATE "MDM_MY_MODULE_PROXY_NODE=DT_NODELABEL(uart_proxy_agent)")
+
+# Add the module runner
 add_subdirectory_ifdef(CONFIG_MDM_MY_MODULE_RUNNER ../modules/my_module ${CMAKE_BINARY_DIR}/modules/my_module)
+```
+
+**In `modules/CMakeLists.txt`**, add:
+```cmake
+target_sources_ifdef(CONFIG_MDM_MY_MODULE app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/my_module/remote_zbus.c)
+target_include_directories_ifdef(CONFIG_MDM_MY_MODULE app PRIVATE my_module)
 ```
 
 #### 3. Enable Your Module

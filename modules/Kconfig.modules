@@ -3,17 +3,17 @@
 
 menu "multi-domain-modules"
 
-menuconfig MDM_CHANNELS
+menuconfig MDM
 	bool "Enable multi-domain modules"
 	help
 	  Enable multi-domain modules support
 
-if MDM_CHANNELS
+if MDM
 
-rsource "led/Kconfig.multidomain_channels"
-rsource "ble_nus/Kconfig.multidomain_channels"
-rsource "channel_sounding/Kconfig.multidomain_channels"
+rsource "led/Kconfig.multidomain"
+rsource "ble_nus/Kconfig.multidomain"
+rsource "channel_sounding/Kconfig.multidomain"
 
-endif # MDM_CHANNELS
+endif # MDM
 
 endmenu
