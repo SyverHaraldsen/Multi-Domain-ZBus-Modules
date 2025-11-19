@@ -11,26 +11,10 @@ menuconfig MDM_BLE_NUS
 
 if MDM_BLE_NUS
 
-menuconfig MDM_BLE_NUS_ZBUS_LOGGING
+config MDM_BLE_NUS_ZBUS_LOGGING
 	bool "Enable ZBUS logging"
 	default n
 	help
 	  Enable local logging of ZBUS messages being sent and received by this module.
-
-if MDM_BLE_NUS_ZBUS_LOGGING
-
-config MDM_BLE_NUS_ZBUS_LOGGING_STACK_SIZE
-	int "ZBUS logging stack size"
-	default 1024
-	help
-	  Stack size used by the ZBUS logging thread.
-
-config MDM_BLE_NUS_ZBUS_LOGGING_PRIORITY
-	int "ZBUS logging thread priority"
-	default 7
-	help
-	  Thread priority used by the ZBUS logging thread.
-
-endif # MDM_BLE_NUS_ZBUS_LOGGING
 
 endif # MDM_BLE_NUS

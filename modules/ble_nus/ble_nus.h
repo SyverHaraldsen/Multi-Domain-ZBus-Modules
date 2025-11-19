@@ -29,6 +29,16 @@ struct ble_nus_module_message {
 	uint32_t timestamp;
 };
 
+static inline const char *ble_message_type_to_string(enum ble_msg_type type)
+{
+	switch (type) {
+	case BLE_RECV:
+		return "BLE_RECV";
+	default:
+		return "UNKNOWN";
+	}
+}
+
 #ifdef __cplusplus
 }
 #endif

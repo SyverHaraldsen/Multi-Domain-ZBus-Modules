@@ -870,3 +870,23 @@ static void channel_sounding_thread(void *p1, void *p2, void *p3)
 K_THREAD_DEFINE(channel_sounding_tid, CONFIG_CHANNEL_SOUNDING_THREAD_STACK_SIZE,
 		channel_sounding_thread, NULL, NULL, NULL, CONFIG_CHANNEL_SOUNDING_THREAD_PRIORITY,
 		0, 0);
+
+
+#if IS_ENABLED(CONFIG_MDM_CHANNEL_SOUNDING_ZBUS_LOGGING)
+
+static void log_cs_message(const struct zbus_channel *chan)
+{
+	const struct cs_distance_msg *msg = zbus_chan_const_msg(chan);
+	LOG_INF("=== Channel Sounding ZBUS Message Received ===");
+	LOG_INF("Type: %s", cs_message_type_to_string(msg->type));
+	LOG_INF("Timestamp: %u ms", msg->timestamp);
+	LOG_INF("Antenna Path: %u", msg->antenna_path);
+	LOG_INF("Distance Estimates (meters): IFFT: %.2f, Phase Slope: %.2f, RTT: %.2f",
+		(double)msg->ifft, (double)msg->phase_slope, (double)msg->rtt);
+	LOG_INF("=============================================");
+}
+
+ZBUS_LISTENER_DEFINE(cs_logger, log_cs_message);
+ZBUS_CHAN_ADD_OBS(CS_DISTANCE_CHAN, cs_logger, 0);
+
+#endif /* CONFIG_MDM_CHANNEL_SOUNDING_ZBUS_LOGGING */

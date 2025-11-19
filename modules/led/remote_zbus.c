@@ -9,6 +9,9 @@
 
 #include "mdm_led.h"
 
+#include <zephyr/logging/log.h>
+LOG_MODULE_REGISTER(mdm_led_module, CONFIG_APP_LOG_LEVEL);
+
 #ifndef MDM_LED_PROXY_NODE
 #error "MDM_LED_PROXY_NODE must be defined to use multi-domain zbus channels for LED module"
 #endif
@@ -32,3 +35,22 @@ ZBUS_CHAN_DEFINE(
 #endif
 
 ZBUS_PROXY_ADD_CHAN(MDM_LED_PROXY_NODE, LED_CHAN);
+
+#if IS_ENABLED(CONFIG_MDM_LED_ZBUS_LOGGING)
+
+static void log_led_message(const struct zbus_channel *chan)
+{
+	const struct led_msg *msg = zbus_chan_const_msg(chan);
+	LOG_INF("=== LED ZBUS Message Received ===");
+	LOG_INF("Type: %s", led_message_type_to_string(msg->type));
+	LOG_INF("R: %d, G: %d, B: %d", msg->red, msg->green, msg->blue);
+	LOG_INF("On Duration: %u ms", msg->duration_on_msec);
+	LOG_INF("Off Duration: %u ms", msg->duration_off_msec);
+	LOG_INF("Repetitions: %d", msg->repetitions);
+	LOG_INF("=============================");
+}
+
+ZBUS_LISTENER_DEFINE(led_logger, log_led_message);
+ZBUS_CHAN_ADD_OBS(LED_CHAN, led_logger, 0);
+
+#endif /* CONFIG_MDM_LED_ZBUS_LOGGING */

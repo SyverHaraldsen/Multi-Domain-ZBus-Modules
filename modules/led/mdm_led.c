@@ -23,6 +23,7 @@
 	!DT_NODE_HAS_STATUS(LED3, okay)
 #error "Unsupported board: led1, led2, led3 devicetree alias is not defined"
 #endif
+
 #warning "This LED module is configured to use binary on/off mapping of leds instead of 	   \
 pwm dimming."
 
@@ -215,3 +216,22 @@ static int led_init(void)
 
 /* Initialize module at SYS_INIT() */
 SYS_INIT(led_init, APPLICATION, CONFIG_APPLICATION_INIT_PRIORITY);
+
+#if IS_ENABLED(CONFIG_MDM_LED_ZBUS_LOGGING)
+
+static void log_led_message(const struct zbus_channel *chan)
+{
+	const struct led_msg *msg = zbus_chan_const_msg(chan);
+	LOG_INF("=== LED ZBUS Message Received ===");
+	LOG_INF("Type: %s", led_message_type_to_string(msg->type));
+	LOG_INF("R: %d, G: %d, B: %d", msg->red, msg->green, msg->blue);
+	LOG_INF("On Duration: %u ms", msg->duration_on_msec);
+	LOG_INF("Off Duration: %u ms", msg->duration_off_msec);
+	LOG_INF("Repetitions: %d", msg->repetitions);
+	LOG_INF("=============================");
+}
+
+ZBUS_LISTENER_DEFINE(led_logger, log_led_message);
+ZBUS_CHAN_ADD_OBS(LED_CHAN, led_logger, 0);
+
+#endif /* CONFIG_MDM_LED_ZBUS_LOGGING */

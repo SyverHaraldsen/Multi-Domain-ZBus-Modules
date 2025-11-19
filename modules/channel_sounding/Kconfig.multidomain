@@ -7,3 +7,13 @@ menuconfig MDM_CHANNEL_SOUNDING
 	  Enable Channel Sounding module.
 	  Note: Cannot be used simultaneously with BLE NUS module due to
 	  BLE role conflicts.
+
+if MDM_CHANNEL_SOUNDING
+
+config MDM_CHANNEL_SOUNDING_ZBUS_LOGGING
+	bool "Enable ZBUS logging"
+	default n
+	help
+	  Enable local logging of ZBUS messages being sent and received by this module.
+
+endif # MDM_CHANNEL_SOUNDING
