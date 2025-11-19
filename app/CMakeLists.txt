@@ -11,6 +11,10 @@ project("Multi-Domain-Modules")
 
 target_sources(app PRIVATE src/main.c)
 
+target_compile_definitions(app PRIVATE "MDM_LED_PROXY_NODE=DT_NODELABEL(uart_proxy_agent)")
+target_compile_definitions(app PRIVATE "MDM_BLE_NUS_PROXY_NODE=DT_NODELABEL(uart_proxy_agent)")
+target_compile_definitions(app PRIVATE "MDM_CHANNEL_SOUNDING_PROXY_NODE=DT_NODELABEL(uart_proxy_agent)")
+
 add_subdirectory_ifdef(CONFIG_MDM_BLE_NUS_RUNNER ../modules/ble_nus ${CMAKE_BINARY_DIR}/modules/ble_nus)
 add_subdirectory_ifdef(CONFIG_MDM_LED_RUNNER ../modules/led ${CMAKE_BINARY_DIR}/modules/led)
 add_subdirectory_ifdef(CONFIG_MDM_CHANNEL_SOUNDING_RUNNER ../modules/channel_sounding ${CMAKE_BINARY_DIR}/modules/channel_sounding)

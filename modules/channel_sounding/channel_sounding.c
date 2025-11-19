@@ -26,10 +26,30 @@
 #include <dk_buttons_and_leds.h>
 
 #include <zephyr/zbus/zbus.h>
-#include "shared_zbus_definition.h"
+#include <zephyr/zbus/proxy_agent/zbus_proxy_agent.h>
+
+#include "channel_sounding.h"
 
 #include <zephyr/logging/log.h>
-LOG_MODULE_REGISTER(channel_sounding, CONFIG_CHANNEL_SOUNDING_MODULE_LOG_LEVEL);
+LOG_MODULE_REGISTER(channel_sounding, CONFIG_MDM_CHANNEL_SOUNDING_LOG_LEVEL);
+
+#ifndef MDM_CHANNEL_SOUNDING_PROXY_NODE
+#error "MDM_CHANNEL_SOUNDING_PROXY_NODE must be defined to use multi-domain zbus channels"
+#endif
+
+/* This file is for the runner side: the controller has the shadow channel, and the
+ * runner has the main channel
+ */
+ZBUS_CHAN_DEFINE(
+	CS_DISTANCE_CHAN,
+	struct cs_distance_msg,
+	NULL,
+	NULL,
+	ZBUS_OBSERVERS_EMPTY,
+	ZBUS_MSG_INIT(0)
+);
+
+ZBUS_PROXY_ADD_CHAN(MDM_CHANNEL_SOUNDING_PROXY_NODE, CS_DISTANCE_CHAN);
 
 #define CON_STATUS_LED DK_LED1
 
@@ -620,8 +640,7 @@ static void channel_sounding_thread(void *p1, void *p2, void *p3)
 	err = bt_enable(NULL);
 	if (err == -EALREADY) {
 		LOG_DBG("Bluetooth already enabled");
-	}
-	else if (err) {
+	} else if (err) {
 		LOG_ERR("Bluetooth init failed (err %d)", err);
 		return;
 	}

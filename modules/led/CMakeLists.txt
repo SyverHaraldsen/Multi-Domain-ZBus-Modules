@@ -1,11 +1,11 @@
 #
-# Copyright (c) 2024 Nordic Semiconductor ASA
+# Copyright (c) 2025 Nordic Semiconductor ASA
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
 target_include_directories(app PRIVATE .)
-target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/led.c)
+target_sources(app PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/mdm_led.c)
 
 # Include files that are common for all modules
 target_include_directories(app PRIVATE ../common)

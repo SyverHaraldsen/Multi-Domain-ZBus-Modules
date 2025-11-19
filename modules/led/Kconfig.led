@@ -1,16 +1,25 @@
 # Copyright (c) 2025 Nordic Semiconductor ASA
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
-rsource "Kconfig.multidomain_channels"
+rsource "Kconfig.multidomain"
+
+if MDM_LED
 
 config MDM_LED_RUNNER
+	bool "This image runs the multi-domain LED module"
+	default n
 	select GPIO
 	select DK_LIBRARY
+	select LED
+	help
+	  Select if this module is running on this image.
 
 if MDM_LED_RUNNER
 
 module = MDM_LED
-module-str = LED
+module-str = mdm_led
 source "subsys/logging/Kconfig.template.log_config"
 
 endif # MDM_LED_RUNNER
+
+endif # MDM_LED
